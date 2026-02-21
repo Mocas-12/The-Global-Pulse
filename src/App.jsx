@@ -1508,9 +1508,11 @@ function App() {
       bubble.style.justifyContent = 'initial'
       bubble.style.opacity = '0'
       bubble.style.setProperty('margin-top', '0', 'important')
-      bubble.style.maxWidth = '80vw'
+      bubble.style.maxWidth = '70vw'
+      bubble.style.zIndex = '10050'
       if (MOBILE) {
-        bubble.style.transform = 'scale(0.8)'
+        bubble.style.fontSize = '12px'
+        bubble.style.padding = '6px 10px'
       }
       const nm = nameOfFeature(f)
       const cs = stats.countryStats?.[code]
@@ -1623,11 +1625,9 @@ function App() {
         const cx = approachFromLeft ? finalX - padding : finalX + padding
         const endX = finalX
         const endY = finalY
-        const breath = 8
-        const leftPos = approachFromLeft ? Math.round(endX + breath) : Math.round(endX - breath)
         const containerRect = containerRef.current.getBoundingClientRect()
-        bubbleElRef.current.style.left = `${leftPos - containerRect.left}px`
-        bubbleElRef.current.style.top = `${endY - containerRect.top}px`
+        bubbleElRef.current.style.left = `${Math.round(endX - containerRect.left)}px`
+        bubbleElRef.current.style.top = `${Math.round(endY - containerRect.top)}px`
       {
         bubbleElRef.current.style.transform = approachFromLeft ? 'translate(0, -50%)' : 'translate(-100%, -50%)'
         bubbleElRef.current.style.transformOrigin = approachFromLeft ? 'left center' : 'right center'
@@ -1637,10 +1637,12 @@ function App() {
         const overLeft = br.left < containerRect.left + 8
         const overRight = br.right > containerRect.right - 8
         if (overLeft || overRight) {
-          const midX = Math.round(containerRect.left + containerRect.width / 2)
-          bubbleElRef.current.style.left = `${midX - containerRect.left}px`
-          bubbleElRef.current.style.transform = 'translate(-50%, -50%)' + (MOBILE ? ' scale(0.8)' : '')
+          const safeX = Math.round(containerRect.left + containerRect.width / 2)
+          bubbleElRef.current.style.left = `${safeX - containerRect.left}px`
+          bubbleElRef.current.style.transform = 'translate(-50%, -50%)'
           bubbleElRef.current.style.transformOrigin = 'center center'
+          const d2 = `M ${x} ${y} L ${safeX} ${endY} L ${safeX} ${endY}`
+          lineRef.current.setAttribute('d', d2)
         }
         bubbleElRef.current.style.opacity = '1'
       {
@@ -1956,7 +1958,7 @@ function App() {
     }
     rafId = requestAnimationFrame(tick)
 
-    const initialAlt = MOBILE ? 2.3 : 1.8
+    const initialAlt = MOBILE ? 3.2 : 1.8
     globe.pointOfView({ lat: 35, lng: 105, altitude: initialAlt }, 0)
     updateOpacity()
     debouncedUpdate()
@@ -2013,6 +2015,12 @@ function App() {
       }
     }
   }, [])
+  useEffect(() => {
+    if (globeRef.current) {
+      const alt = MOBILE ? 3.2 : 1.8
+      globeRef.current.pointOfView({ lat: 35, lng: 105, altitude: alt }, 0)
+    }
+  }, [MOBILE])
   useEffect(() => {
     if (!selected) {
       clearAll()
