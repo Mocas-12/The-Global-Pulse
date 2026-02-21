@@ -51,7 +51,8 @@ const GlobalStatsPanel = ({ stats }) => {
         const el = document.querySelector('.holo-slogan')
         if (el) {
           const rect = el.getBoundingClientRect()
-          setPanelTop(Math.round(rect.bottom + 16))
+          const ip12 = document.body.classList.contains('iphone12')
+          setPanelTop(Math.round(rect.bottom + (ip12 ? 24 : 16)))
         } else {
           setPanelTop(100)
         }
@@ -119,8 +120,9 @@ const GlobalStatsPanel = ({ stats }) => {
   if (isMobile) {
     wrap.left = '50%'
     wrap.width = '90%'
-    wrap.maxWidth = '85%'
-    wrap.transform = 'translateX(-50%) scale(0.8)'
+    const ip12 = document.body.classList.contains('iphone12')
+    wrap.maxWidth = ip12 ? '80%' : '85%'
+    wrap.transform = ip12 ? 'translateX(-50%) scale(0.75)' : 'translateX(-50%) scale(0.8)'
     wrap.transformOrigin = 'top center'
   }
   const clockWrap = {
@@ -705,6 +707,14 @@ function App() {
   const pulseSloganGlow = useCallback(() => {}, [])
   const forcedMobile = useMemo(() => new URLSearchParams(window.location.search).get('mobile') === '1', [])
   const [MOBILE, setMOBILE] = useState(() => forcedMobile || window.innerWidth <= 768)
+  const [IP12, setIP12] = useState(() => {
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const dpr = window.devicePixelRatio || 1
+    const ua = navigator.userAgent || ''
+    const ios = /iPhone|iPad|iPod/i.test(ua)
+    return ios && dpr >= 3 && w >= 380 && w <= 400 && h >= 800 && h <= 900
+  })
   const [webglAlive, setWebglAlive] = useState(true)
   const [webglReady] = useState(() => {
     try {
@@ -719,7 +729,14 @@ function App() {
     const update = () => {
       const m = forcedMobile || window.innerWidth <= 768
       setMOBILE(m)
-      globeOffsetYRef.current = m ? -15 : -20
+      const w = window.innerWidth
+      const h = window.innerHeight
+      const dpr = window.devicePixelRatio || 1
+      const ua = navigator.userAgent || ''
+      const ios = /iPhone|iPad|iPod/i.test(ua)
+      const ip12 = ios && dpr >= 3 && w >= 380 && w <= 400 && h >= 800 && h <= 900
+      setIP12(ip12)
+      globeOffsetYRef.current = ip12 ? -18 : m ? -15 : -20
       if (manualArcsGroupRef.current) manualArcsGroupRef.current.position.y = globeOffsetYRef.current
       if (fxGroupRef.current) fxGroupRef.current.position.y = globeOffsetYRef.current
     }
@@ -1968,7 +1985,7 @@ function App() {
     }
     rafId = requestAnimationFrame(tick)
 
-    const initialAlt = MOBILE ? 3.2 : 2.5
+    const initialAlt = IP12 ? 3.4 : MOBILE ? 3.2 : 2.5
     globe.pointOfView({ lat: 35, lng: 105, altitude: initialAlt }, 0)
     updateOpacity()
     debouncedUpdate()
@@ -2027,10 +2044,10 @@ function App() {
   }, [])
   useEffect(() => {
     if (globeRef.current) {
-      const alt = MOBILE ? 3.2 : 2.5
+      const alt = IP12 ? 3.4 : MOBILE ? 3.2 : 2.5
       globeRef.current.pointOfView({ lat: 35, lng: 105, altitude: alt }, 1000)
     }
-  }, [MOBILE])
+  }, [MOBILE, IP12])
   useEffect(() => {
     if (!selected) {
       clearAll()
