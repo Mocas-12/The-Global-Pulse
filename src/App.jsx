@@ -90,7 +90,7 @@ const GlobalStatsPanel = ({ stats }) => {
     background: 'rgba(0,20,40,0.65)',
     border: '1px solid #00ffff',
     borderRadius: '8px',
-    backdropFilter: 'blur(8px)',
+    backdropFilter: 'blur(10px)',
     boxShadow:
       '0 0 20px rgba(0,242,255,0.35), inset 0 0 12px rgba(24,120,255,0.3)',
     fontFamily:
@@ -103,6 +103,7 @@ const GlobalStatsPanel = ({ stats }) => {
   if (isMobile) {
     wrap.left = '50%'
     wrap.width = '90%'
+    wrap.maxWidth = '85%'
     wrap.transform = 'translateX(-50%) scale(0.8)'
     wrap.transformOrigin = 'top center'
   }
@@ -1915,7 +1916,8 @@ function App() {
     }
     rafId = requestAnimationFrame(tick)
 
-    globe.pointOfView({ lat: 35, lng: 105, altitude: 1.8 }, 0)
+    const initialAlt = MOBILE ? 2.3 : 1.8
+    globe.pointOfView({ lat: 35, lng: 105, altitude: initialAlt }, 0)
     updateOpacity()
     debouncedUpdate()
 

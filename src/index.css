@@ -95,14 +95,14 @@ body {
 /* Holographic Slogan */
 .holo-slogan {
   position: absolute;
-  top: 50px; /* 30px ticker height + 20px gap */
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
   width: 90vw;
   max-width: 960px;
   text-align: center;
   pointer-events: none;
-  z-index: 1001;
+  z-index: 11001;
   font-family: Inter, "PingFang SC", "PingFang SC Light", "Microsoft YaHei UI", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   font-weight: 300;
   font-size: 15px;
@@ -110,6 +110,14 @@ body {
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
   padding-top: 10px;
   animation: fadeIn 2s ease-out forwards, breath 4s ease-in-out infinite 2s;
+}
+
+@media (max-width: 768px) {
+  .holo-slogan {
+    padding-top: 4rem;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+  }
 }
 @keyframes breath {
   0% { opacity: 0.4; }
