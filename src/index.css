@@ -102,7 +102,7 @@ body {
   max-width: 960px;
   text-align: center;
   pointer-events: none;
-  z-index: 11001;
+  z-index: 100;
   font-family: Inter, "PingFang SC", "PingFang SC Light", "Microsoft YaHei UI", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   font-weight: 300;
   font-size: 15px;
@@ -117,6 +117,15 @@ body {
     padding-top: 4rem;
     font-size: 14px;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .warning-ticker {
+    height: 22px;
+  }
+  .warning-ticker .ticker-item {
+    font-size: 10px;
   }
 }
 @keyframes breath {

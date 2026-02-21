@@ -42,9 +42,25 @@ const A3_TO_A2 = {
 
 const GlobalStatsPanel = ({ stats }) => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768)
+  const [panelTop, setPanelTop] = useState(20)
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= 768)
+    const onResize = () => {
+      const m = window.innerWidth <= 768
+      setIsMobile(m)
+      if (m) {
+        const el = document.querySelector('.holo-slogan')
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          setPanelTop(Math.round(rect.bottom + 16))
+        } else {
+          setPanelTop(100)
+        }
+      } else {
+        setPanelTop(20)
+      }
+    }
     window.addEventListener('resize', onResize)
+    onResize()
     return () => window.removeEventListener('resize', onResize)
   }, [])
   const pad2 = (n) => String(n).padStart(2, '0')
@@ -82,7 +98,7 @@ const GlobalStatsPanel = ({ stats }) => {
   const wrap = {
     position: 'fixed',
     left: '20px',
-    top: '20px',
+    top: `${panelTop}px`,
     zIndex: 10001,
     marginTop: '40px',
     padding: '10px 14px',
@@ -700,7 +716,7 @@ function App() {
     const update = () => {
       const m = window.innerWidth <= 768
       setMOBILE(m)
-      globeOffsetYRef.current = m ? -10 : -20
+      globeOffsetYRef.current = m ? -15 : -20
       if (manualArcsGroupRef.current) manualArcsGroupRef.current.position.y = globeOffsetYRef.current
       if (fxGroupRef.current) fxGroupRef.current.position.y = globeOffsetYRef.current
     }
@@ -1480,7 +1496,7 @@ function App() {
       bubble.style.border = '1px solid #00ffff'
       bubble.style.borderRadius = '10px'
       bubble.style.background = 'rgba(0,20,40,0.9)'
-      bubble.style.backdropFilter = 'blur(4px)'
+      bubble.style.backdropFilter = 'blur(8px)'
       bubble.style.boxShadow = '0 0 20px rgba(0,242,255,0.35), inset 0 0 12px rgba(24,120,255,0.3)'
       bubble.style.height = 'auto'
       bubble.style.lineHeight = '1.4'
@@ -1490,6 +1506,10 @@ function App() {
       bubble.style.justifyContent = 'initial'
       bubble.style.opacity = '0'
       bubble.style.setProperty('margin-top', '0', 'important')
+      bubble.style.maxWidth = '80vw'
+      if (MOBILE) {
+        bubble.style.transform = 'scale(0.8)'
+      }
       const nm = nameOfFeature(f)
       const cs = stats.countryStats?.[code]
       const w = countryWeights[code] ?? 0.02
@@ -1611,6 +1631,15 @@ function App() {
         bubbleElRef.current.style.transformOrigin = approachFromLeft ? 'left center' : 'right center'
         bubbleElRef.current.style.setProperty('margin-left', '0', 'important')
       }
+        const br = bubbleElRef.current.getBoundingClientRect()
+        const overLeft = br.left < containerRect.left + 8
+        const overRight = br.right > containerRect.right - 8
+        if (overLeft || overRight) {
+          const midX = Math.round(containerRect.left + containerRect.width / 2)
+          bubbleElRef.current.style.left = `${midX - containerRect.left}px`
+          bubbleElRef.current.style.transform = 'translate(-50%, -50%)' + (MOBILE ? ' scale(0.8)' : '')
+          bubbleElRef.current.style.transformOrigin = 'center center'
+        }
         bubbleElRef.current.style.opacity = '1'
       {
         const d = `M ${x} ${y} L ${cx} ${endY} L ${endX} ${endY}`
