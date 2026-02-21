@@ -1430,12 +1430,21 @@ function App() {
 
   useEffect(() => {
     const globe = Globe({ animateIn: true })(containerRef.current)
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
       .backgroundColor('#0a0a0a')
-      .showAtmosphere(true)
-      .atmosphereColor('#5aa3ff')
-      .atmosphereAltitude(0.25)
+    {
+      const darkSvg =
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><rect width='8' height='8' fill='%230a0a0a'/></svg>"
+      if (MOBILE) {
+        globe.globeImageUrl(darkSvg).bumpImageUrl(darkSvg).showAtmosphere(false)
+      } else {
+        globe
+          .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+          .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+          .showAtmosphere(true)
+          .atmosphereColor('#5aa3ff')
+          .atmosphereAltitude(0.25)
+      }
+    }
 
     const controls = globe.controls()
     controls.enableRotate = true
