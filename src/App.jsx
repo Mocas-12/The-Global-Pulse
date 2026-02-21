@@ -687,6 +687,15 @@ function App() {
   const pulseCountryOpacity = useCallback(() => {}, [])
   const pulseSloganGlow = useCallback(() => {}, [])
   const [MOBILE, setMOBILE] = useState(() => window.innerWidth <= 768)
+  const [webglReady] = useState(() => {
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      return !!gl
+    } catch {
+      return false
+    }
+  })
   useEffect(() => {
     const update = () => {
       const m = window.innerWidth <= 768
@@ -1416,7 +1425,7 @@ function App() {
     controls.enableDamping = true
     controls.dampingFactor = 0.08
 
-    globe.renderer().setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
+    globe.renderer().setPixelRatio(MOBILE ? 1 : Math.min(2, window.devicePixelRatio || 1))
 
     const resize = () => {
       globe.width(window.innerWidth).height(window.innerHeight)
@@ -2121,6 +2130,16 @@ function App() {
 
   return (
       <div className="w-screen h-screen cyber-bg relative" style={{ transform: 'none', perspective: 'none', margin: 0, padding: 0 }}>
+      {!webglReady && (
+        <div className="fixed inset-0 flex items-center justify-center text-center p-6" style={{ zIndex: 12000, color: '#ffffff', background: 'rgba(0,0,0,0.6)' }}>
+          <div className="font-mono" style={{ maxWidth: 520, lineHeight: 1.6 }}>
+            <div style={{ marginBottom: 8, fontSize: 16, opacity: 0.9 }}>设备不支持 WebGL 或显存不足</div>
+            <div style={{ fontSize: 13, opacity: 0.75 }}>
+              请尝试：开启硬件加速、切换现代浏览器、关闭其他占用显存的应用，然后刷新页面。
+            </div>
+          </div>
+        </div>
+      )}
       <WarningTicker />
       <div className="holo-slogan">
         "每一秒，都是某个人的终点，亦是某个人重获希望的起点。"
