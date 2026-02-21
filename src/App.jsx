@@ -703,7 +703,8 @@ function App() {
   const nudgeAmbient = useCallback(() => {}, [])
   const pulseCountryOpacity = useCallback(() => {}, [])
   const pulseSloganGlow = useCallback(() => {}, [])
-  const [MOBILE, setMOBILE] = useState(() => window.innerWidth <= 768)
+  const forcedMobile = useMemo(() => new URLSearchParams(window.location.search).get('mobile') === '1', [])
+  const [MOBILE, setMOBILE] = useState(() => forcedMobile || window.innerWidth <= 768)
   const [webglAlive, setWebglAlive] = useState(true)
   const [webglReady] = useState(() => {
     try {
@@ -716,7 +717,7 @@ function App() {
   })
   useEffect(() => {
     const update = () => {
-      const m = window.innerWidth <= 768
+      const m = forcedMobile || window.innerWidth <= 768
       setMOBILE(m)
       globeOffsetYRef.current = m ? -15 : -20
       if (manualArcsGroupRef.current) manualArcsGroupRef.current.position.y = globeOffsetYRef.current
@@ -1958,7 +1959,7 @@ function App() {
     }
     rafId = requestAnimationFrame(tick)
 
-    const initialAlt = MOBILE ? 3.2 : 1.8
+    const initialAlt = MOBILE ? 3.2 : 2.5
     globe.pointOfView({ lat: 35, lng: 105, altitude: initialAlt }, 0)
     updateOpacity()
     debouncedUpdate()
@@ -2017,8 +2018,8 @@ function App() {
   }, [])
   useEffect(() => {
     if (globeRef.current) {
-      const alt = MOBILE ? 3.2 : 1.8
-      globeRef.current.pointOfView({ lat: 35, lng: 105, altitude: alt }, 0)
+      const alt = MOBILE ? 3.2 : 2.5
+      globeRef.current.pointOfView({ lat: 35, lng: 105, altitude: alt }, 1000)
     }
   }, [MOBILE])
   useEffect(() => {
