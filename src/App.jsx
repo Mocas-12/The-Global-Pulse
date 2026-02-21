@@ -41,6 +41,12 @@ const A3_TO_A2 = {
 }
 
 const GlobalStatsPanel = ({ stats }) => {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768)
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const pad2 = (n) => String(n).padStart(2, '0')
   const [nowDate, setNowDate] = useState(() => {
     const d = new Date()
@@ -93,6 +99,12 @@ const GlobalStatsPanel = ({ stats }) => {
     lineHeight: '1.35',
     pointerEvents: 'none',
     width: '232px',
+  }
+  if (isMobile) {
+    wrap.left = '50%'
+    wrap.width = '90%'
+    wrap.transform = 'translateX(-50%) scale(0.8)'
+    wrap.transformOrigin = 'top center'
   }
   const clockWrap = {
     display: 'flex',
@@ -162,14 +174,16 @@ const GlobalStatsPanel = ({ stats }) => {
         </div>
         <div style={val}>{Number(stats.total || 0).toLocaleString()}</div>
       </div>
-      <div style={row}>
-        <div style={{ ...label, color: '#00ff88', WebkitTextFillColor: '#00ff88' }}>
-          今年出生人数
+      {!isMobile && (
+        <div style={row}>
+          <div style={{ ...label, color: '#00ff88', WebkitTextFillColor: '#00ff88' }}>
+            今年出生人数
+          </div>
+          <div style={{ ...val, color: '#00ff88' }}>
+            +{Number(stats.birthsYear || 0).toLocaleString()}
+          </div>
         </div>
-        <div style={{ ...val, color: '#00ff88' }}>
-          +{Number(stats.birthsYear || 0).toLocaleString()}
-        </div>
-      </div>
+      )}
       <div style={row}>
         <div style={{ ...label, color: '#00ff88', WebkitTextFillColor: '#00ff88' }}>
           今日出生人数
@@ -178,14 +192,16 @@ const GlobalStatsPanel = ({ stats }) => {
           +{Number(stats.birthsToday || 0).toLocaleString()}
         </div>
       </div>
-      <div style={row}>
-        <div style={{ ...label, color: '#ff4444', WebkitTextFillColor: '#ff4444' }}>
-          今年死亡人数
+      {!isMobile && (
+        <div style={row}>
+          <div style={{ ...label, color: '#ff4444', WebkitTextFillColor: '#ff4444' }}>
+            今年死亡人数
+          </div>
+          <div style={{ ...val, color: '#ff4444' }}>
+            -{Number(stats.deathsYear || 0).toLocaleString()}
+          </div>
         </div>
-        <div style={{ ...val, color: '#ff4444' }}>
-          -{Number(stats.deathsYear || 0).toLocaleString()}
-        </div>
-      </div>
+      )}
       <div style={row}>
         <div style={{ ...label, color: '#ff4444', WebkitTextFillColor: '#ff4444' }}>
           今日死亡人数
@@ -194,14 +210,17 @@ const GlobalStatsPanel = ({ stats }) => {
           -{Number(stats.deathsToday || 0).toLocaleString()}
         </div>
       </div>
-      <div style={row}>
-        <div style={{ ...label, color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
-          人口净增长
+      {!isMobile && (
+        <div style={row}>
+          <div style={{ ...label, color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
+            人口净增长
+          </div>
+          <div style={val}>{Number(netYear).toLocaleString()}</div>
         </div>
-        <div style={val}>{Number(netYear).toLocaleString()}</div>
-      </div>
-      <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {(() => {
+      )}
+      {!isMobile && (
+        <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {(() => {
           const hRow = {
             display: 'grid',
             gridTemplateColumns: '120px 1fr',
@@ -292,8 +311,9 @@ const GlobalStatsPanel = ({ stats }) => {
               </div>
             </>
           )
-        })()}
-      </div>
+          })()}
+        </div>
+      )}
     </div>
   )
 }
@@ -665,6 +685,19 @@ function App() {
   const nudgeAmbient = useCallback(() => {}, [])
   const pulseCountryOpacity = useCallback(() => {}, [])
   const pulseSloganGlow = useCallback(() => {}, [])
+  const [MOBILE, setMOBILE] = useState(() => window.innerWidth <= 768)
+  useEffect(() => {
+    const update = () => {
+      const m = window.innerWidth <= 768
+      setMOBILE(m)
+      globeOffsetYRef.current = m ? -10 : -20
+      if (manualArcsGroupRef.current) manualArcsGroupRef.current.position.y = globeOffsetYRef.current
+      if (fxGroupRef.current) fxGroupRef.current.position.y = globeOffsetYRef.current
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
   const countryWeights = useMemo(
     () => ({
       CN: 0.18,
@@ -2094,7 +2127,7 @@ function App() {
       <div
         ref={containerRef}
         className="globe-container w-full h-full"
-        style={{ position: 'relative', outline: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent', margin: 0, padding: 0, transform: 'translateY(12vh)' }}
+        style={{ position: 'relative', outline: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent', margin: 0, padding: 0, transform: MOBILE ? 'translateY(10vh)' : 'translateY(12vh)' }}
         onPointerDown={(e) => e.stopPropagation()}
       />
       <div
