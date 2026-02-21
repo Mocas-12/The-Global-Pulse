@@ -699,10 +699,12 @@ function App() {
   const globeOffsetYRef = useRef(-20)
   const fxGroupRef = useRef(null)
   const fxRefsRef = useRef({ torus: null, ringN: null, ringS: null })
+  const webglCleanupRef = useRef(null)
   const nudgeAmbient = useCallback(() => {}, [])
   const pulseCountryOpacity = useCallback(() => {}, [])
   const pulseSloganGlow = useCallback(() => {}, [])
   const [MOBILE, setMOBILE] = useState(() => window.innerWidth <= 768)
+  const [webglAlive, setWebglAlive] = useState(true)
   const [webglReady] = useState(() => {
     try {
       const canvas = document.createElement('canvas')
@@ -765,8 +767,8 @@ function App() {
     []
   )
   const arcRateRef = useRef({ sec: 0, count: 0 })
-  const ARC_MAX_CONCURRENT = 30
-  const ARC_PER_SEC_LIMIT = 8
+  const ARC_MAX_CONCURRENT = MOBILE ? 10 : 30
+  const ARC_PER_SEC_LIMIT = MOBILE ? 3 : 8
   const ARC_ANIM_MS = 1500
   const latLngToVec3 = (latDeg, lngDeg, scale = 1) => {
     const lat = THREE.MathUtils.degToRad(latDeg)
@@ -1960,6 +1962,25 @@ function App() {
     debouncedUpdate()
 
     globeRef.current = globe
+    {
+      const r = globe.renderer()
+      const onLost = (e) => {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault()
+        setWebglAlive(false)
+      }
+      const onRestored = () => {
+        setWebglAlive(true)
+        try {
+          r.setPixelRatio(MOBILE ? 1 : Math.min(2, window.devicePixelRatio || 1))
+          r.setSize(window.innerWidth, window.innerHeight)
+        } catch (e) {
+          const _err = e
+        }
+      }
+      r.domElement.addEventListener('webglcontextlost', onLost, false)
+      r.domElement.addEventListener('webglcontextrestored', onRestored, false)
+      webglCleanupRef.current = { r, onLost, onRestored }
+    }
     birthPulseRef.current = (lat, lng) => {
       spawnPulse(lat, lng, 'birth')
       const vol = 0.55
@@ -1975,6 +1996,15 @@ function App() {
       globe.controls().removeEventListener('change', debouncedUpdate)
       window.removeEventListener('pointerdown', onGlobalDown, true)
       window.removeEventListener('pointerup', globalClose, true)
+      if (webglCleanupRef.current && webglCleanupRef.current.r) {
+        try {
+          const { r, onLost, onRestored } = webglCleanupRef.current
+          r.domElement.removeEventListener('webglcontextlost', onLost, false)
+          r.domElement.removeEventListener('webglcontextrestored', onRestored, false)
+        } catch (e) {
+          const _ignored3 = e
+        }
+      }
       if (rafId) cancelAnimationFrame(rafId)
       if (fxGroupRef.current && scene) {
         scene.remove(fxGroupRef.current)
@@ -2159,7 +2189,7 @@ function App() {
 
   return (
       <div className="w-screen h-screen cyber-bg relative" style={{ transform: 'none', perspective: 'none', margin: 0, padding: 0 }}>
-      {!webglReady && (
+      {(!webglReady || !webglAlive) && (
         <div className="fixed inset-0 flex items-center justify-center text-center p-6" style={{ zIndex: 12000, color: '#ffffff', background: 'rgba(0,0,0,0.6)' }}>
           <div className="font-mono" style={{ maxWidth: 520, lineHeight: 1.6 }}>
             <div style={{ marginBottom: 8, fontSize: 16, opacity: 0.9 }}>设备不支持 WebGL 或显存不足</div>
