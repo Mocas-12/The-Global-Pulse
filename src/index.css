@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #0a0a0a;
+  color: rgba(255, 255, 255, 0.87);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cyber-bg {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 45%, #1a1a1a 0%, #0a0a0a 60%);
+}
+.cyber-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 140px 140px, 140px 140px;
+  opacity: 0.06;
+}
+
+.globe-label {
+  pointer-events: none;
+  position: absolute;
+  z-index: 9999;
+  color: white;
+  transform: translate(-50%, -50%);
+}
+
+.text-shadow {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+.crt-glow {
+  text-shadow:
+    0 0 6px rgba(0, 255, 136, 0.16),
+    0 0 12px rgba(0, 255, 136, 0.08),
+    0 0 2px rgba(0, 0, 0, 0.75);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* Warning Ticker */
+.warning-ticker {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  background: rgba(255, 0, 0, 0.15);
+  border-top: 1px solid #ff4d4f;
+  border-bottom: 1px solid rgba(255, 77, 79, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+}
+.warning-ticker .track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: nowrap;
+  animation: ticker-left 24s linear infinite;
+  will-change: transform;
+}
+.warning-ticker:hover .track {
+  animation-play-state: paused;
+}
+.warning-ticker .ticker-item {
+  margin-right: 40px;
+  color: #ff4d4f;
+  filter: drop-shadow(0 0 2px rgba(255, 77, 79, 0.5));
+  font-family: JetBrains Mono, Roboto Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+}
+@keyframes ticker-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Holographic Slogan */
+.holo-slogan {
+  position: absolute;
+  top: 50px; /* 30px ticker height + 20px gap */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90vw;
+  max-width: 960px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1001;
+  font-family: Inter, "PingFang SC", "PingFang SC Light", "Microsoft YaHei UI", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  padding-top: 10px;
+  animation: fadeIn 2s ease-out forwards, breath 4s ease-in-out infinite 2s;
+}
+@keyframes breath {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+/* Globe Rim Overlay */
+.globe-rim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  background:
+    radial-gradient(120% 40% at 50% 10%, rgba(0, 255, 255, 0.12) 0%, rgba(0, 255, 255, 0.06) 30%, rgba(0,0,0,0) 60%);
+  mix-blend-mode: screen;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Audio toggle */
+.audio-toggle {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 1100;
+  pointer-events: auto;
+  background: rgba(0,20,40,0.55);
+  border: 1px solid #00ffff;
+  color: rgba(255,255,255,0.85);
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0,242,255,0.25), inset 0 0 10px rgba(24,120,255,0.2);
+  transition: transform .15s ease, opacity .15s ease;
+}
+.audio-toggle:hover {
+  transform: translateZ(0) scale(1.03);
+  opacity: 0.95;
+}
+
+/* Ambient toggle */
+.ambient-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1100;
+  pointer-events: auto;
+  background: rgba(0,20,40,0.55);
+  border: 1px solid #00ffff;
+  color: rgba(255,255,255,0.9);
+  padding: 8px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0,242,255,0.25), inset 0 0 10px rgba(24,120,255,0.2);
+  animation: rotate-slow 12s linear infinite;
+}
+@keyframes rotate-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
