@@ -802,8 +802,8 @@ function App() {
   const spawnManualArc = (from, to, type, alt) => {
     if (!manualArcsGroupRef.current) return
     const N = 128
-    const p0 = latLngToVec3(from.lat, from.lng, 1)
-    const p3 = latLngToVec3(to.lat, to.lng, 1)
+    const p0 = latLngToVec3(from.lat, from.lng, 1.05)
+    const p3 = latLngToVec3(to.lat, to.lng, 1.05)
     const c1 = p0.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const c2 = p3.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const curve = new THREE.CubicBezierCurve3(p0, c1, c2, p3)
@@ -813,22 +813,23 @@ function App() {
       const v = points[i]
       pos[i * 3] = v.x
       pos[i * 3 + 1] = v.y
-      pos[i * 3 + 2] = v.z + 2
+      pos[i * 3 + 2] = v.z
     }
     const geom = new THREE.BufferGeometry()
     geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     geom.computeBoundingSphere()
     geom.setDrawRange(0, 2)
     const mat = new THREE.LineBasicMaterial({
-      color: 0xffffff,
+      color: type === 'birth' ? 0x00ff88 : 0xff4444,
       transparent: true,
       opacity: 1,
-      depthTest: false,
-      depthWrite: false,
-      linewidth: 5,
+      depthTest: true,
+      depthWrite: true,
+      blending: THREE.AdditiveBlending,
+      linewidth: 3,
     })
     const line = new THREE.Line(geom, mat)
-    line.renderOrder = 9999
+    line.renderOrder = 1200
     line.layers.set(0)
     const grp = manualArcsGroupRef.current
     if (grp.children.length >= ARC_MAX_CONCURRENT) {
