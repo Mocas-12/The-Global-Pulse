@@ -649,7 +649,6 @@ function App() {
     }, 2200)
   }
   const [geoFeatures, setGeoFeatures] = useState([])
-  const [geoLoaded, setGeoLoaded] = useState(false)
   const stats = usePopulationLogic({
     onBirthPulse: (lat, lng) => {
       if (birthPulseRef.current) birthPulseRef.current(lat, lng)
@@ -668,7 +667,6 @@ function App() {
       pulseSloganGlow()
       nudgeAmbient('death')
     },
-    enabled: geoLoaded,
   })
   useEffect(() => {
     let mounted = true
@@ -698,9 +696,6 @@ function App() {
   const [selected, _realSetState] = useState(null)
   const globeRef = useRef(null)
   const colorTweenVal = useRef(stats.viabilityIndex)
-  useEffect(() => {
-    setGeoLoaded(Array.isArray(geoFeatures) && geoFeatures.length > 0)
-  }, [geoFeatures])
   const isoCentroidRef = useRef({})
   const manualArcsGroupRef = useRef(null)
   const globeOffsetYRef = useRef(-20)
@@ -805,6 +800,7 @@ function App() {
   }
   const spawnManualArc = (from, to, type, alt) => {
     if (!manualArcsGroupRef.current) return
+    console.log('Generating arc:', from, to)
     const N = 128
     const p0 = latLngToVec3(from.lat, from.lng, 1.15)
     const p3 = latLngToVec3(to.lat, to.lng, 1.15)
@@ -812,27 +808,21 @@ function App() {
     const c2 = p3.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const curve = new THREE.CubicBezierCurve3(p0, c1, c2, p3)
     const points = curve.getPoints(N - 1)
-    const pos = new Float32Array(N * 3)
-    for (let i = 0; i < N; i++) {
-      const v = points[i]
-      pos[i * 3] = v.x
-      pos[i * 3 + 1] = v.y
-      pos[i * 3 + 2] = v.z
-    }
-    const geom = new THREE.BufferGeometry()
-    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
-    geom.computeBoundingSphere()
-    geom.setDrawRange(0, 2)
-    const mat = new THREE.LineBasicMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
+      emissive: type === 'birth' ? 0x00ff88 : 0xff4444,
+      emissiveIntensity: 2.2,
+      metalness: 0,
+      roughness: 0.35,
       transparent: true,
       opacity: 1,
       depthTest: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      linewidth: 2,
     })
-    const line = new THREE.Line(geom, mat)
+    const initialPts = points.slice(0, 2)
+    const initialCurve = new THREE.CatmullRomCurve3(initialPts)
+    const initialGeom = new THREE.TubeGeometry(initialCurve, 16, 0.2, 8, false)
+    const line = new THREE.Mesh(initialGeom, mat)
     line.renderOrder = 999999
     line.frustumCulled = false
     line.layers.set(0)
@@ -851,11 +841,15 @@ function App() {
       head += step
       const start = Math.max(0, Math.floor(head - tail))
       const count = Math.max(2, Math.min(N - 1, Math.floor(head)) - start)
-      geom.setDrawRange(start, count)
-      if (geom.attributes && geom.attributes.position) {
-        geom.attributes.position.needsUpdate = true
+      const segPts = points.slice(start, start + count)
+      if (segPts.length >= 2) {
+        const partialCurve = new THREE.CatmullRomCurve3(segPts)
+        const newGeom = new THREE.TubeGeometry(partialCurve, Math.max(8, segPts.length * 2), 0.2, 8, false)
+        const oldGeom = line.geometry
+        line.geometry = newGeom
+        if (oldGeom) oldGeom.dispose()
       }
-      console.log('[ManualArc] drawRange.count=', count)
+      console.log('[ManualArc] tube segments=', count)
       if (head >= N) {
         cleanup()
         return
@@ -865,7 +859,7 @@ function App() {
     const cleanup = () => {
       if (line._raf) cancelAnimationFrame(line._raf)
       grp.remove(line)
-      geom.dispose()
+      if (line.geometry) line.geometry.dispose()
       mat.dispose()
     }
     line._raf = requestAnimationFrame(update)
@@ -1371,23 +1365,12 @@ function App() {
     const globe = Globe({ animateIn: true })(containerRef.current)
       .backgroundColor('#0a0a0a')
     {
-      const darkSvg =
-        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><rect width='8' height='8' fill='%230a0a0a'/></svg>"
-      if (MOBILE) {
-        globe
-          .globeImageUrl(darkSvg)
-          .bumpImageUrl(darkSvg)
-          .showAtmosphere(true)
-          .atmosphereColor('#002233')
-          .atmosphereAltitude(0.25)
-      } else {
-        globe
-          .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-          .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-          .showAtmosphere(true)
-          .atmosphereColor('#002233')
-          .atmosphereAltitude(0.25)
-      }
+      globe
+        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+        .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+        .showAtmosphere(true)
+        .atmosphereColor('#1a82ff')
+        .atmosphereAltitude(0.35)
     }
 
     const controls = globe.controls()
@@ -1789,6 +1772,8 @@ function App() {
     const lastDistRef = { current: 0 }
     const updateOpacity = () => {
       if (!pinsRef.current.length) return
+      const amb = new THREE.AmbientLight(0xffffff, 0.6)
+      scene.add(amb)
       const cam = globe.camera()
       const dist = cam.position.distanceTo(globe.controls().target)
       if (Math.abs(dist - lastDistRef.current) < 0.5) return
