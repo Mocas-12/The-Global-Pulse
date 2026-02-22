@@ -800,6 +800,7 @@ function App() {
   }
   const spawnManualArc = (from, to, type, alt) => {
     if (!manualArcsGroupRef.current) return
+    console.count('Meteor created')
     console.log('Generating arc:', from, to)
     const N = 128
     const p0 = latLngToVec3(from.lat, from.lng, 1.15)
@@ -811,7 +812,7 @@ function App() {
     const mat = new THREE.MeshStandardMaterial({
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       emissive: type === 'birth' ? 0x00ff88 : 0xff4444,
-      emissiveIntensity: 2.2,
+      emissiveIntensity: 5,
       metalness: 0,
       roughness: 0.35,
       transparent: true,
@@ -1366,8 +1367,8 @@ function App() {
       .backgroundColor('#0a0a0a')
     {
       globe
-        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-        .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+        .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
         .showAtmosphere(true)
         .atmosphereColor('#1a82ff')
         .atmosphereAltitude(0.35)
