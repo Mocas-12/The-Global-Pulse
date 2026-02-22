@@ -727,6 +727,7 @@ function App() {
       return false
     }
   })
+  const meteorSpawnRef = useRef(null)
   useEffect(() => {
     const update = () => {
       const m = forcedMobile || window.innerWidth <= 768
@@ -2024,11 +2025,13 @@ function App() {
       spawnPulse(lat, lng, 'birth')
       const vol = 0.55
       playBirthSound(vol)
+      if (meteorSpawnRef.current) meteorSpawnRef.current('birth')
     }
     deathPulseRef.current = (lat, lng) => {
       spawnPulse(lat, lng, 'death')
       const vol = 0.6
       playDeathSound(vol)
+      if (meteorSpawnRef.current) meteorSpawnRef.current('death')
     }
     return () => {
       window.removeEventListener('resize', resize)
@@ -2109,6 +2112,95 @@ function App() {
     isoCentroidRef.current = map
   }, [geoFeatures])
 
+  const MeteorCanvas = ({ registerSpawn, mobile }) => {
+    const canvasRef = useRef(null)
+    const ctxRef = useRef(null)
+    const meteorsRef = useRef([])
+    const lastTsRef = useRef(0)
+    useEffect(() => {
+      const c = canvasRef.current
+      if (!c) return
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
+      const fit = () => {
+        c.width = Math.floor(window.innerWidth * dpr)
+        c.height = Math.floor(window.innerHeight * dpr)
+        c.style.width = '100vw'
+        c.style.height = '100vh'
+      }
+      fit()
+      const ctx = c.getContext('2d')
+      ctxRef.current = ctx
+      const spawn = (type) => {
+        if (!ctxRef.current) return
+        if (mobile && Math.random() < 0.5) return
+        const w = c.width
+        const h = c.height
+        const x = Math.random() * w
+        const y = Math.random() * h * 0.7
+        const speed = 0.8 + Math.random() * 1.6
+        const ang = Math.PI * (0.15 + Math.random() * 0.25)
+        const vx = Math.cos(ang) * speed * (0.6 + Math.random() * 0.8)
+        const vy = Math.sin(ang) * speed * (0.6 + Math.random() * 0.8)
+        const color = type === 'birth' ? '#00ffcc' : '#ff4d4d'
+        const lifeMs = 1500
+        meteorsRef.current.push({ x, y, vx, vy, color, t0: performance.now(), life: lifeMs })
+      }
+      if (typeof registerSpawn === 'function') registerSpawn(spawn)
+      const tick = (ts) => {
+        const ctx = ctxRef.current
+        if (!ctx) return
+        const dpr2 = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.fillStyle = 'rgba(0,0,0,0.08)'
+        ctx.fillRect(0, 0, c.width, c.height)
+        const arr = meteorsRef.current
+        const now = ts
+        for (let i = arr.length - 1; i >= 0; i--) {
+          const m = arr[i]
+          const age = now - m.t0
+          if (age >= m.life) {
+            arr.splice(i, 1)
+            continue
+          }
+          const p = age / m.life
+          m.x += m.vx * dpr2 * 2
+          m.y += m.vy * dpr2 * 2
+          const len = 60 * (1 - p) + 30
+          const tx = m.x - m.vx * len
+          const ty = m.y - m.vy * len
+          const grad = ctx.createLinearGradient(m.x, m.y, tx, ty)
+          grad.addColorStop(0, m.color)
+          grad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.strokeStyle = grad
+          ctx.lineWidth = 2 + 2 * (1 - p)
+          ctx.beginPath()
+          ctx.moveTo(tx, ty)
+          ctx.lineTo(m.x, m.y)
+          ctx.stroke()
+        }
+        lastTsRef.current = ts
+        requestAnimationFrame(tick)
+      }
+      const onResize = () => fit()
+      window.addEventListener('resize', onResize)
+      requestAnimationFrame(tick)
+      return () => {
+        window.removeEventListener('resize', onResize)
+      }
+    }, [registerSpawn, mobile])
+    return (
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: -1,
+          pointerEvents: 'none',
+          background: 'transparent',
+        }}
+      />
+    )
+  }
   
 
   useEffect(() => {
@@ -2234,6 +2326,7 @@ function App() {
 
   return (
       <div className="w-screen h-screen cyber-bg relative" style={{ transform: 'none', perspective: 'none', margin: 0, padding: 0 }}>
+      <MeteorCanvas registerSpawn={(fn) => { meteorSpawnRef.current = fn }} mobile={MOBILE} />
       {(!webglReady || !webglAlive) && (
         <div className="fixed inset-0 flex items-center justify-center text-center p-6" style={{ zIndex: 12000, color: '#ffffff', background: 'rgba(0,0,0,0.6)' }}>
           <div className="font-mono" style={{ maxWidth: 520, lineHeight: 1.6 }}>
