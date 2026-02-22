@@ -50,13 +50,13 @@ const GlobalStatsPanel = ({ stats }) => {
       setIsMobile(m)
       const t = document.querySelector('.warning-ticker')
       const h = t ? t.offsetHeight : 0
-      const gap = 6
+      const gap = 12
       let top = m ? h + gap : 20
       if (m) {
         const s = document.querySelector('.holo-slogan')
         if (s) {
           const r = s.getBoundingClientRect()
-          top = Math.max(top, Math.round(r.bottom + 8))
+          top = Math.max(top, Math.round(r.bottom + 12))
         }
       }
       setPanelTop(top)
