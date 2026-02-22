@@ -2150,9 +2150,10 @@ function App() {
         const ctx = ctxRef.current
         if (!ctx) return
         const dpr2 = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
-        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalCompositeOperation = 'destination-out'
         ctx.fillStyle = 'rgba(0,0,0,0.08)'
         ctx.fillRect(0, 0, c.width, c.height)
+        ctx.globalCompositeOperation = 'lighter'
         const arr = meteorsRef.current
         const now = ts
         for (let i = arr.length - 1; i >= 0; i--) {
@@ -2194,7 +2195,7 @@ function App() {
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: -1,
+          zIndex: 0,
           pointerEvents: 'none',
           background: 'transparent',
         }}
