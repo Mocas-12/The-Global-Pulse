@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME": "China",
+        "ADM0_A3": "CHN",
+        "ISO_A2": "CN",
+        "ISO_A2_EH": "CN",
+        "name_zh": "中国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [73, 18],
+            [135, 18],
+            [135, 53],
+            [73, 53],
+            [73, 18]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME": "United States",
+        "ADM0_A3": "USA",
+        "ISO_A2": "US",
+        "ISO_A2_EH": "US",
+        "name_zh": "美国"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-125, 25],
+            [-66, 25],
+            [-66, 49],
+            [-125, 49],
+            [-125, 25]
+          ]
+        ]
+      }
+    }
+  ]
+}

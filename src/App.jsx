@@ -648,6 +648,8 @@ function App() {
       isInternalPlayingRef.current = false
     }, 2200)
   }
+  const [geoFeatures, setGeoFeatures] = useState([])
+  const [geoLoaded, setGeoLoaded] = useState(false)
   const stats = usePopulationLogic({
     onBirthPulse: (lat, lng) => {
       if (birthPulseRef.current) birthPulseRef.current(lat, lng)
@@ -666,6 +668,7 @@ function App() {
       pulseSloganGlow()
       nudgeAmbient('death')
     },
+    enabled: geoLoaded,
   })
   useEffect(() => {
     let mounted = true
@@ -695,8 +698,10 @@ function App() {
   const [selected, _realSetState] = useState(null)
   const globeRef = useRef(null)
   const colorTweenVal = useRef(stats.viabilityIndex)
-  const [geoFeatures, setGeoFeatures] = useState([])
   const hoveredRef = useRef(null)
+  useEffect(() => {
+    setGeoLoaded(Array.isArray(geoFeatures) && geoFeatures.length > 0)
+  }, [geoFeatures])
   const isoCentroidRef = useRef({})
   const manualArcsGroupRef = useRef(null)
   const globeOffsetYRef = useRef(-20)
@@ -823,13 +828,14 @@ function App() {
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       transparent: true,
       opacity: 1,
-      depthTest: true,
-      depthWrite: true,
-      blending: THREE.NormalBlending,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
       linewidth: 2,
     })
     const line = new THREE.Line(geom, mat)
-    line.renderOrder = 99999
+    line.renderOrder = 999999
+    line.frustumCulled = false
     line.layers.set(0)
     const grp = manualArcsGroupRef.current
     if (grp.children.length >= ARC_MAX_CONCURRENT) {
@@ -1493,7 +1499,12 @@ function App() {
         path.setAttribute('stroke-dashoffset', '0')
         lineRef.current = path
         svg.appendChild(path)
-        gsap.to(path, { attr: { 'stroke-dashoffset': -50 }, duration: 1.2, ease: 'linear', repeat: -1 })
+        try {
+          gsap.to(path, { attr: { 'stroke-dashoffset': -50 }, duration: 1.2, ease: 'linear', repeat: -1 })
+        } catch (e) {
+          const _e = e
+          void _e
+        }
         const joint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
         joint.setAttribute('r', '2.5')
         joint.setAttribute('fill', '#00f2ff')
@@ -1704,17 +1715,22 @@ function App() {
         const len = Math.hypot(x2 - x1, y2 - y1)
         lineRef.current.setAttribute('stroke-dasharray', `${len}`)
         lineRef.current.setAttribute('stroke-dashoffset', `0`)
-        gsap.to(lineRef.current, {
-          attr: { 'stroke-dashoffset': len },
-          duration: 0.25,
-          ease: 'power2.in',
-          onComplete: () => {
-            if (lineRef.current && lineRef.current.parentElement) {
-              lineRef.current.parentElement.removeChild(lineRef.current)
-            }
-            lineRef.current = null
-          },
-        })
+        try {
+          gsap.to(lineRef.current, {
+            attr: { 'stroke-dashoffset': len },
+            duration: 0.25,
+            ease: 'power2.in',
+            onComplete: () => {
+              if (lineRef.current && lineRef.current.parentElement) {
+                lineRef.current.parentElement.removeChild(lineRef.current)
+              }
+              lineRef.current = null
+            },
+          })
+        } catch (e) {
+          const _e = e
+          void _e
+        }
       }
       overlaysRef.current = []
       refreshHtml()
@@ -1822,7 +1838,7 @@ function App() {
     const scene = typeof globe.scene === 'function' ? globe.scene() : null
     if (scene) {
       const grp = new THREE.Group()
-      grp.renderOrder = 1200
+      grp.renderOrder = 999999
       grp.position.y = globeOffsetYRef.current
       grp.layers.set(0)
       scene.add(grp)
@@ -2227,20 +2243,13 @@ function App() {
     }
     const load = async () => {
       try {
-        const data = await tryFetch('/countries.geojson')
+        const base = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL ? import.meta.env.BASE_URL : '/'
+        const data = await tryFetch(`${base}datasets/countries.geojson`)
         setGeoFeatures(data.features || [])
-      } catch {
-        try {
-          const data = await tryFetch(
-            'https://vasturiano.github.io/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson'
-          )
-          setGeoFeatures(data.features || [])
-        } catch {
-          const data = await tryFetch(
-            'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson'
-          )
-          setGeoFeatures(data.features || [])
-        }
+      } catch (e) {
+        const _e = e
+        void _e
+        setGeoFeatures([])
       }
     }
     load()

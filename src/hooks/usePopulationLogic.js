@@ -87,6 +87,7 @@ const getInitialStats = () => {
 
 export const usePopulationLogic = (opts = {}) => {
   const [stats, setStats] = useState(() => getInitialStats())
+  const enabled = !!(opts && opts.enabled)
 
   const preciseData = useRef({
     births: 0,
@@ -178,6 +179,7 @@ export const usePopulationLogic = (opts = {}) => {
       countryLastInts.current[iso] = { births: bInit, deaths: dInit }
     })
     jitterSeeds.current = jitterStart
+    if (!enabled) return
     const tickRate = 50
     const timer = setInterval(() => {
       const incrementB = (GLOBAL_STATS.birthsPerSecond * tickRate) / 1000
@@ -291,7 +293,7 @@ export const usePopulationLogic = (opts = {}) => {
       }
     }, tickRate)
     return () => clearInterval(timer)
-  }, [onBirthPulse, onDeathPulse, onBirthPulseISO, onDeathPulseISO, POP_WORLD, TZ_BY_ISO])
+  }, [onBirthPulse, onDeathPulse, onBirthPulseISO, onDeathPulseISO, POP_WORLD, TZ_BY_ISO, enabled])
 
   const getCountryInstant = useMemo(
     () => (iso) => {
