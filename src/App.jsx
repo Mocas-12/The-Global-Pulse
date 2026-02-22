@@ -45,20 +45,10 @@ const GlobalStatsPanel = ({ stats }) => {
   const [panelTop, setPanelTop] = useState(20)
   useEffect(() => {
     const onResize = () => {
-      const m = window.innerWidth <= 768
+      const isForcedMobile = new URLSearchParams(window.location.search).get('mobile') === '1'
+      const m = isForcedMobile || window.innerWidth <= 768
       setIsMobile(m)
-      if (m) {
-        const el = document.querySelector('.holo-slogan')
-        if (el) {
-          const rect = el.getBoundingClientRect()
-          const ip12 = document.body.classList.contains('iphone12')
-          setPanelTop(Math.round(rect.bottom + (ip12 ? 24 : 16)))
-        } else {
-          setPanelTop(100)
-        }
-      } else {
-        setPanelTop(20)
-      }
+      setPanelTop(m ? 140 : 20)
     }
     window.addEventListener('resize', onResize)
     onResize()
@@ -706,6 +696,7 @@ function App() {
   const pulseCountryOpacity = useCallback(() => {}, [])
   const pulseSloganGlow = useCallback(() => {}, [])
   const forcedMobile = useMemo(() => new URLSearchParams(window.location.search).get('mobile') === '1', [])
+  const isMobileView = forcedMobile || window.innerWidth < 768
   const [MOBILE, setMOBILE] = useState(() => forcedMobile || window.innerWidth <= 768)
   const [IP12, setIP12] = useState(() => {
     const w = window.innerWidth
@@ -1664,11 +1655,11 @@ function App() {
         const overLeft = br.left < containerRect.left + 8
         const overRight = br.right > containerRect.right - 8
         if (overLeft || overRight) {
-          const safeX = Math.round(containerRect.left + containerRect.width / 2)
-          bubbleElRef.current.style.left = `${safeX - containerRect.left}px`
-          bubbleElRef.current.style.transform = 'translate(-50%, -50%)'
-          bubbleElRef.current.style.transformOrigin = 'center center'
-          const d2 = `M ${x} ${y} L ${safeX} ${endY} L ${safeX} ${endY}`
+      const safeX = Math.round(containerRect.left + containerRect.width / 2)
+      bubbleElRef.current.style.left = `${safeX - containerRect.left}px`
+      bubbleElRef.current.style.transform = 'translate(0, -50%)'
+      bubbleElRef.current.style.transformOrigin = 'left center'
+      const d2 = `M ${x} ${y} L ${safeX} ${endY} L ${safeX} ${endY}`
           lineRef.current.setAttribute('d', d2)
         }
         bubbleElRef.current.style.opacity = '1'
@@ -1985,7 +1976,7 @@ function App() {
     }
     rafId = requestAnimationFrame(tick)
 
-    const initialAlt = IP12 ? 3.4 : MOBILE ? 3.2 : 2.5
+    const initialAlt = isMobileView ? 3.2 : 2.5
     globe.pointOfView({ lat: 35, lng: 105, altitude: initialAlt }, 0)
     updateOpacity()
     debouncedUpdate()
@@ -2044,10 +2035,10 @@ function App() {
   }, [])
   useEffect(() => {
     if (globeRef.current) {
-      const alt = IP12 ? 3.4 : MOBILE ? 3.2 : 2.5
+      const alt = MOBILE ? 3.2 : 2.5
       globeRef.current.pointOfView({ lat: 35, lng: 105, altitude: alt }, 1000)
     }
-  }, [MOBILE, IP12])
+  }, [MOBILE])
   useEffect(() => {
     if (!selected) {
       clearAll()
