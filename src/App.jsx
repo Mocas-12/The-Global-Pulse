@@ -2122,8 +2122,13 @@ function App() {
       if (!c) return
       const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
       const fit = () => {
-        c.width = Math.floor(window.innerWidth * dpr)
-        c.height = Math.floor(window.innerHeight * dpr)
+        const w = Math.floor(window.innerWidth * dpr)
+        const h = Math.floor(window.innerHeight * dpr)
+        if (c.width !== w) c.width = w
+        if (c.height !== h) c.height = h
+        c.style.position = 'fixed'
+        c.style.left = '0'
+        c.style.top = '0'
         c.style.width = '100vw'
         c.style.height = '100vh'
       }
@@ -2136,7 +2141,7 @@ function App() {
         const w = c.width
         const h = c.height
         const x = Math.random() * w
-        const y = Math.random() * h * 0.7
+        const y = Math.random() * h
         const speed = 0.8 + Math.random() * 1.6
         const ang = Math.PI * (0.15 + Math.random() * 0.25)
         const vx = Math.cos(ang) * speed * (0.6 + Math.random() * 0.8)
@@ -2150,9 +2155,11 @@ function App() {
         const ctx = ctxRef.current
         if (!ctx) return
         const dpr2 = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.fillStyle = 'rgba(0,0,0,0.08)'
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = 0.15
+        ctx.fillStyle = '#000'
         ctx.fillRect(0, 0, c.width, c.height)
+        ctx.globalAlpha = 1
         ctx.globalCompositeOperation = 'lighter'
         const arr = meteorsRef.current
         const now = ts
@@ -2195,7 +2202,7 @@ function App() {
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 0,
+          zIndex: 1,
           pointerEvents: 'none',
           background: 'transparent',
         }}
