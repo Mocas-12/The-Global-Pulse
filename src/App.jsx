@@ -2049,6 +2049,12 @@ function App() {
         c.style.width = '100vw'
         c.style.height = '100vh'
         c.style.transform = 'translateZ(0)'
+        try {
+          c.style.setProperty('left', '0', 'important')
+          c.style.setProperty('top', '0', 'important')
+        } catch (e) {
+          const IGNORE_ERR = e
+        }
       }
       fit()
       const ctx = c.getContext('2d')
@@ -2056,14 +2062,13 @@ function App() {
       const spawn = (type) => {
         if (!ctxRef.current) return
         if (mobile && Math.random() < 0.05) return
-        const w = c.width
-        const h = c.height
-        const x = Math.random() * w
-        const y = Math.random() * h
-        const speed = 0.8 + Math.random() * 1.6
+        const dprLocal = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
+        const x = Math.random() * window.innerWidth * dprLocal
+        const y = Math.random() * window.innerHeight * dprLocal
+        const speed = 3 + Math.random() * 4
         const ang = Math.PI * (0.15 + Math.random() * 0.25)
-        const vx = Math.cos(ang) * speed * (0.6 + Math.random() * 0.8)
-        const vy = Math.sin(ang) * speed * (0.6 + Math.random() * 0.8)
+        const vx = Math.cos(ang) * speed * (1.8 + Math.random() * 1.2)
+        const vy = Math.sin(ang) * speed * (1.8 + Math.random() * 1.2)
         const color = type === 'birth' ? '#00ffcc' : '#ff4d4d'
         const lifeMs = 1500
         meteorsRef.current.push({ x, y, vx, vy, color, t0: performance.now(), life: lifeMs })
@@ -2089,9 +2094,9 @@ function App() {
             continue
           }
           const p = age / m.life
-          m.x += m.vx * dpr2 * 2
-          m.y += m.vy * dpr2 * 2
-          const len = 60 * (1 - p) + 30
+          m.x += m.vx * dpr2 * 6
+          m.y += m.vy * dpr2 * 6
+          const len = (60 * (1 - p) + 30) * 5
           const tx = m.x - m.vx * len
           const ty = m.y - m.vy * len
           const grad = ctx.createLinearGradient(m.x, m.y, tx, ty)
