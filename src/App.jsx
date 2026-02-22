@@ -50,13 +50,13 @@ const GlobalStatsPanel = ({ stats }) => {
       setIsMobile(m)
       const t = document.querySelector('.warning-ticker')
       const h = t ? t.offsetHeight : 0
-      const gap = 10
+      const gap = 6
       let top = m ? h + gap : 20
       if (m) {
         const s = document.querySelector('.holo-slogan')
         if (s) {
           const r = s.getBoundingClientRect()
-          top = Math.max(top, Math.round(r.bottom + 12))
+          top = Math.max(top, Math.round(r.bottom + 8))
         }
       }
       setPanelTop(top)
@@ -102,7 +102,7 @@ const GlobalStatsPanel = ({ stats }) => {
     left: '20px',
     top: `${panelTop}px`,
     zIndex: 10001,
-    marginTop: '16px',
+    marginTop: '0',
     padding: '10px 14px',
     color: '#ffffff',
     background: 'rgba(0,20,40,0.65)',
@@ -1542,6 +1542,7 @@ function App() {
       if (MOBILE) {
         bubble.style.fontSize = '12px'
         bubble.style.padding = '6px 10px'
+        bubble.style.maxWidth = '68vw'
       }
       const nm = nameOfFeature(f)
       const cs = stats.countryStats?.[code]
@@ -1640,7 +1641,9 @@ function App() {
         const renderer = globe.renderer()
         const rect = renderer.domElement.getBoundingClientRect()
         const onLeft = x < rect.left + rect.width / 2
-        const bxCalc = Math.round(rect.left + (onLeft ? 0.15 : 0.85) * rect.width)
+        const SAFE_MARGIN = MOBILE ? 16 : 8
+        const bxRaw = Math.round(rect.left + (onLeft ? 0.18 : 0.82) * rect.width)
+        const bxCalc = onLeft ? Math.max(rect.left + SAFE_MARGIN, bxRaw) : Math.min(rect.right - SAFE_MARGIN, bxRaw)
         const byCalc = Math.round(y - 100)
         anchorRef.current = { bx: bxCalc, by: byCalc }
         const finalX = anchorRef.current.bx
@@ -1662,11 +1665,17 @@ function App() {
         const overLeft = br.left < containerRect.left + 8
         const overRight = br.right > containerRect.right - 8
         if (overLeft || overRight) {
-          const anchorSideX = approachFromLeft
-            ? Math.max(br.left, containerRect.left + 8)
-            : Math.min(br.right, containerRect.right - 8)
-          anchorRef.current.bx = anchorSideX
-          endX = anchorRef.current.bx
+          const SAFE = SAFE_MARGIN
+          if (overLeft) {
+            const delta = (containerRect.left + SAFE) - br.left
+            endX = finalX + delta
+          }
+          if (overRight) {
+            const delta = br.right - (containerRect.right - SAFE)
+            endX = finalX - delta
+          }
+          endX = Math.max(containerRect.left + SAFE, Math.min(containerRect.right - SAFE, endX))
+          anchorRef.current.bx = endX
           bubbleElRef.current.style.left = `${Math.round(endX - containerRect.left)}px`
           bubbleElRef.current.style.transform = approachFromLeft ? 'translate(0, -50%)' : 'translate(-100%, -50%)'
           bubbleElRef.current.style.transformOrigin = approachFromLeft ? 'left center' : 'right center'
