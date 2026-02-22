@@ -909,92 +909,9 @@ function App() {
       }, 1000)
     }
     const scene = globeRef.current && typeof globeRef.current.scene === 'function' ? globeRef.current.scene() : null
-    const cam = globeRef.current && typeof globeRef.current.camera === 'function' ? globeRef.current.camera() : null
-    if (scene && cam) {
-      const dir = new THREE.Vector3()
-      cam.getWorldDirection(dir)
-      const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(2, 2),
-        new THREE.MeshBasicMaterial({ color: 0xffffff })
-      )
-      plane.renderOrder = 1200
-      plane.layers.set(0)
-      plane.position.copy(cam.position).add(dir.multiplyScalar(10))
-      plane.lookAt(cam.position)
-      scene.add(plane)
-      if (manualArcsGroupRef.current && !scene.children.includes(manualArcsGroupRef.current)) {
-        scene.add(manualArcsGroupRef.current)
-        manualArcsGroupRef.current.position.y = globeOffsetYRef.current
-      }
-      console.log('Real Scene Children:', scene.children)
-      if (globeRef.current && typeof globeRef.current.pointOfView === 'function') {
-        const pov = globeRef.current.pointOfView()
-        globeRef.current.pointOfView(pov)
-      }
-      if (
-        globeRef.current &&
-        typeof globeRef.current.renderer === 'function' &&
-        typeof globeRef.current.scene === 'function' &&
-        typeof globeRef.current.camera === 'function'
-      ) {
-        globeRef.current.renderer().render(globeRef.current.scene(), globeRef.current.camera())
-      }
-      if (globeRef.current && typeof globeRef.current.onViewPowered === 'function') {
-        globeRef.current.onViewPowered(() => {
-          const g = manualArcsGroupRef.current
-          if (g) {
-            g.children.forEach((obj) => {
-              const geo = obj.geometry
-              if (geo && geo.attributes && geo.attributes.position) {
-                geo.attributes.position.needsUpdate = true
-              }
-            })
-          }
-        })
-      }
-      const groupWorld = manualArcsGroupRef.current
-        ? manualArcsGroupRef.current.getWorldPosition(new THREE.Vector3())
-        : null
-      console.log('Camera Position:', cam.position)
-      console.log('Group Position:', groupWorld)
-      const wall = new THREE.Mesh(
-        new THREE.PlaneGeometry(5000, 5000),
-        new THREE.MeshBasicMaterial({ color: 0xff0000 })
-      )
-      wall.renderOrder = 9999
-      wall.layers.set(0)
-      wall.position.set(0, 0, -100)
-      scene.add(wall)
-      const renderer = globeRef.current && typeof globeRef.current.renderer === 'function' ? globeRef.current.renderer() : null
-      if (renderer) {
-        renderer.setClearColor(0xff0000, 1)
-        const size = renderer.getSize(new THREE.Vector2())
-        console.log('Renderer Size:', size)
-      }
-      const canvases = document.querySelectorAll('canvas')
-      canvases.forEach((c) => {
-        c.style.border = '5px solid yellow'
-      })
-      const domCanvas = renderer ? renderer.domElement : null
-      if (domCanvas) {
-        const ancestry = []
-        let el = domCanvas
-        while (el) {
-          const cs = getComputedStyle(el)
-          ancestry.push({ tag: el.tagName, pe: cs.pointerEvents, op: cs.opacity, disp: cs.display })
-          el = el.parentElement
-        }
-        console.log('Canvas ancestry:', ancestry)
-      }
-      console.log('Camera Frustum:', { near: cam.near, far: cam.far })
-      setTimeout(() => {
-        scene.remove(wall)
-        if (wall.geometry) wall.geometry.dispose()
-        if (wall.material) wall.material.dispose()
-        scene.remove(plane)
-        if (plane.geometry) plane.geometry.dispose()
-        if (plane.material) plane.material.dispose()
-      }, 1500)
+    if (scene && manualArcsGroupRef.current && !scene.children.includes(manualArcsGroupRef.current)) {
+      scene.add(manualArcsGroupRef.current)
+      manualArcsGroupRef.current.position.y = globeOffsetYRef.current
     }
   }
   const labelTextMap = useMemo(
