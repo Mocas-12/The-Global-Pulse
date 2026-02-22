@@ -2055,7 +2055,7 @@ function App() {
       ctxRef.current = ctx
       const spawn = (type) => {
         if (!ctxRef.current) return
-        if (mobile && Math.random() < 0.5) return
+        if (mobile && Math.random() < 0.05) return
         const w = c.width
         const h = c.height
         const x = Math.random() * w
@@ -2069,13 +2069,16 @@ function App() {
         meteorsRef.current.push({ x, y, vx, vy, color, t0: performance.now(), life: lifeMs })
       }
       if (typeof registerSpawn === 'function') registerSpawn(spawn)
+      const debugInterval = setInterval(() => {
+        spawn(Math.random() < 0.5 ? 'birth' : 'death')
+      }, 500)
       const tick = (ts) => {
         const ctx = ctxRef.current
         if (!ctx) return
         const dpr2 = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
         ctx.globalCompositeOperation = 'source-over'
         ctx.clearRect(0, 0, c.width, c.height)
-        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalCompositeOperation = 'screen'
         const arr = meteorsRef.current
         const now = ts
         for (let i = arr.length - 1; i >= 0; i--) {
@@ -2095,11 +2098,14 @@ function App() {
           grad.addColorStop(0, m.color)
           grad.addColorStop(1, 'rgba(0,0,0,0)')
           ctx.strokeStyle = grad
-          ctx.lineWidth = 2 + 2 * (1 - p)
+          ctx.lineWidth = 3
+          ctx.shadowBlur = 10
+          ctx.shadowColor = m.color
           ctx.beginPath()
           ctx.moveTo(tx, ty)
           ctx.lineTo(m.x, m.y)
           ctx.stroke()
+          ctx.shadowBlur = 0
         }
         lastTsRef.current = ts
         requestAnimationFrame(tick)
@@ -2109,6 +2115,7 @@ function App() {
       requestAnimationFrame(tick)
       return () => {
         window.removeEventListener('resize', onResize)
+        clearInterval(debugInterval)
       }
     }, [registerSpawn, mobile])
     return (
