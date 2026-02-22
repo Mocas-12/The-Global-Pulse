@@ -95,7 +95,7 @@ body {
 /* Holographic Slogan */
 .holo-slogan {
   position: absolute;
-  top: 40vh;
+  top: 24vh;
   left: 50%;
   transform: translateX(-50%);
   width: 90vw;

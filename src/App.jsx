@@ -51,7 +51,7 @@ const GlobalStatsPanel = ({ stats }) => {
       const t = document.querySelector('.warning-ticker')
       const h = t ? t.offsetHeight : 0
       const gap = 12
-      let top = m ? h + gap : 20
+      let top = m ? h + gap : 72
       if (m) {
         const s = document.querySelector('.holo-slogan')
         if (s) {
