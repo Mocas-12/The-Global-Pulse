@@ -1629,19 +1629,15 @@ function App() {
         const renderer = globe.renderer()
         const rect = renderer.domElement.getBoundingClientRect()
         const onLeft = x < rect.left + rect.width / 2
-        const SAFE_LEFT = 420
-        let bxCalc = Math.round(rect.left + (onLeft ? 0.15 : 0.85) * rect.width)
-        if (onLeft) {
-          bxCalc = Math.max(rect.left + SAFE_LEFT, bxCalc)
-        }
+        const bxCalc = Math.round(rect.left + (onLeft ? 0.15 : 0.85) * rect.width)
         const byCalc = Math.round(y - 100)
         anchorRef.current = { bx: bxCalc, by: byCalc }
         const finalX = anchorRef.current.bx
         const finalY = anchorRef.current.by
         const approachFromLeft = x < finalX
         const padding = 30
-        const cx = approachFromLeft ? finalX - padding : finalX + padding
-        const endX = finalX
+        let cx = approachFromLeft ? finalX - padding : finalX + padding
+        let endX = finalX
         const endY = finalY
         const containerRect = containerRef.current.getBoundingClientRect()
         bubbleElRef.current.style.left = `${Math.round(endX - containerRect.left)}px`
@@ -1655,18 +1651,21 @@ function App() {
         const overLeft = br.left < containerRect.left + 8
         const overRight = br.right > containerRect.right - 8
         if (overLeft || overRight) {
-      const safeX = Math.round(containerRect.left + containerRect.width / 2)
-      bubbleElRef.current.style.left = `${safeX - containerRect.left}px`
-      bubbleElRef.current.style.transform = 'translate(0, -50%)'
-      bubbleElRef.current.style.transformOrigin = 'left center'
-      const d2 = `M ${x} ${y} L ${safeX} ${endY} L ${safeX} ${endY}`
-          lineRef.current.setAttribute('d', d2)
+          const anchorSideX = approachFromLeft
+            ? Math.max(br.left, containerRect.left + 8)
+            : Math.min(br.right, containerRect.right - 8)
+          anchorRef.current.bx = anchorSideX
+          endX = anchorRef.current.bx
+          bubbleElRef.current.style.left = `${Math.round(endX - containerRect.left)}px`
+          bubbleElRef.current.style.transform = approachFromLeft ? 'translate(0, -50%)' : 'translate(-100%, -50%)'
+          bubbleElRef.current.style.transformOrigin = approachFromLeft ? 'left center' : 'right center'
+          cx = approachFromLeft ? endX - padding : endX + padding
         }
         bubbleElRef.current.style.opacity = '1'
-      {
-        const d = `M ${x} ${y} L ${cx} ${endY} L ${endX} ${endY}`
-        lineRef.current.setAttribute('d', d)
-      }
+        {
+          const d = `M ${x} ${y} L ${cx} ${endY} L ${endX} ${endY}`
+          lineRef.current.setAttribute('d', d)
+        }
         lineRef.current.setAttribute('opacity', '1')
         lineRef.current.style.filter = 'drop-shadow(0 0 5px #00f2ff)'
       jointRef.current.setAttribute('cx', `${endX}`)
