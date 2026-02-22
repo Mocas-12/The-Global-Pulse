@@ -48,7 +48,18 @@ const GlobalStatsPanel = ({ stats }) => {
       const isForcedMobile = new URLSearchParams(window.location.search).get('mobile') === '1'
       const m = isForcedMobile || window.innerWidth <= 768
       setIsMobile(m)
-      setPanelTop(m ? 100 : 20)
+      const t = document.querySelector('.warning-ticker')
+      const h = t ? t.offsetHeight : 0
+      const gap = 10
+      let top = m ? h + gap : 20
+      if (m) {
+        const s = document.querySelector('.holo-slogan')
+        if (s) {
+          const r = s.getBoundingClientRect()
+          top = Math.max(top, Math.round(r.bottom + 12))
+        }
+      }
+      setPanelTop(top)
     }
     window.addEventListener('resize', onResize)
     onResize()
