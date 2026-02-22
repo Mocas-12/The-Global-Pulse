@@ -698,7 +698,6 @@ function App() {
   const [selected, _realSetState] = useState(null)
   const globeRef = useRef(null)
   const colorTweenVal = useRef(stats.viabilityIndex)
-  const hoveredRef = useRef(null)
   useEffect(() => {
     setGeoLoaded(Array.isArray(geoFeatures) && geoFeatures.length > 0)
   }, [geoFeatures])
@@ -828,7 +827,7 @@ function App() {
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       transparent: true,
       opacity: 1,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       linewidth: 2,
@@ -2256,19 +2255,18 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!globeRef.current || !geoFeatures.length) return
-    globeRef.current
-      .polygonsData(geoFeatures)
-      .polygonCapColor(() => 'rgba(0,0,0,0)')
-      .polygonSideColor(() => 'rgba(0,0,0,0)')
-      .polygonStrokeColor((f) => {
-        const base = 'rgba(0,255,136,0.85)'
-        if (hoveredRef.current && hoveredRef.current === f) {
-          return 'rgba(0,255,136,1)'
-        }
-        return base
-      })
-  }, [geoFeatures])
+    if (!globeRef.current) return
+    try {
+      globeRef.current
+        .polygonsData([])
+        .polygonCapColor(() => 'rgba(0,0,0,0)')
+        .polygonSideColor(() => 'rgba(0,0,0,0)')
+        .polygonStrokeColor(() => 'rgba(0,0,0,0)')
+    } catch (e) {
+      const _e = e
+      void _e
+    }
+  }, [globeRef])
 
 
   return (
