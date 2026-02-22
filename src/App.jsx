@@ -1428,10 +1428,6 @@ function App() {
     resize()
     window.addEventListener('resize', resize)
     globe.onPointClick(() => {})
-    globe
-      .polygonsData(CHINA_GEOJSON.features)
-      .polygonCapColor(() => 'rgba(0,255,136,0.25)')
-      .polygonSideColor(() => 'rgba(0,255,136,0.0)')
 
     // 移除所有 hover/out 相关逻辑，关闭仅由背景点击触发
     globe.onPolygonClick((f, e) => {
@@ -2283,15 +2279,15 @@ function App() {
     if (!globeRef.current) return
     try {
       globeRef.current
-        .polygonsData([])
-        .polygonCapColor(() => 'rgba(0,0,0,0)')
-        .polygonSideColor(() => 'rgba(0,0,0,0)')
-        .polygonStrokeColor(() => 'rgba(0,0,0,0)')
+        .polygonsData(geoFeatures)
+        .polygonCapColor(() => 'rgba(0,255,136,0.10)')
+        .polygonSideColor(() => 'rgba(0,255,136,0.02)')
+        .polygonStrokeColor(() => 'rgba(0,255,136,0.25)')
     } catch (e) {
       const _e = e
       void _e
     }
-  }, [globeRef])
+  }, [globeRef, geoFeatures])
 
 
   return (
