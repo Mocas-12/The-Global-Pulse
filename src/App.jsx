@@ -823,13 +823,13 @@ function App() {
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       transparent: true,
       opacity: 1,
-      depthTest: false,
-      depthWrite: false,
+      depthTest: true,
+      depthWrite: true,
       blending: THREE.NormalBlending,
       linewidth: 2,
     })
     const line = new THREE.Line(geom, mat)
-    line.renderOrder = 1200
+    line.renderOrder = 99999
     line.layers.set(0)
     const grp = manualArcsGroupRef.current
     if (grp.children.length >= ARC_MAX_CONCURRENT) {
