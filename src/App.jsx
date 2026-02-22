@@ -802,8 +802,8 @@ function App() {
   const spawnManualArc = (from, to, type, alt) => {
     if (!manualArcsGroupRef.current) return
     const N = 128
-    const p0 = latLngToVec3(from.lat, from.lng, 1.05)
-    const p3 = latLngToVec3(to.lat, to.lng, 1.05)
+    const p0 = latLngToVec3(from.lat, from.lng, 1.15)
+    const p3 = latLngToVec3(to.lat, to.lng, 1.15)
     const c1 = p0.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const c2 = p3.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const curve = new THREE.CubicBezierCurve3(p0, c1, c2, p3)
@@ -823,10 +823,10 @@ function App() {
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       transparent: true,
       opacity: 1,
-      depthTest: true,
-      depthWrite: true,
-      blending: THREE.AdditiveBlending,
-      linewidth: 3,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      linewidth: 2,
     })
     const line = new THREE.Line(geom, mat)
     line.renderOrder = 1200
@@ -891,7 +891,7 @@ function App() {
     }
     const from = ISO_LATLNG[fromIso] || { lat: -20 + Math.random() * 40, lng: -160 + Math.random() * 320 }
     const to = ISO_LATLNG[toIso] || { lat: -20 + Math.random() * 40, lng: -160 + Math.random() * 320 }
-    const alt = 0.1 + Math.random() * 0.3
+    const alt = 0.3 + Math.random() * 0.4
     spawnManualArc(from, to, type, alt)
     if (manualArcsGroupRef.current) {
       const box = new THREE.Mesh(
@@ -909,11 +909,7 @@ function App() {
         if (box.material) box.material.dispose()
       }, 1000)
     }
-    const scene = globeRef.current && typeof globeRef.current.scene === 'function' ? globeRef.current.scene() : null
-    if (scene && manualArcsGroupRef.current && !scene.children.includes(manualArcsGroupRef.current)) {
-      scene.add(manualArcsGroupRef.current)
-      manualArcsGroupRef.current.position.y = globeOffsetYRef.current
-    }
+    // scene add 已在初始化阶段完成
   }
   const labelTextMap = useMemo(
     () => ({
@@ -1373,13 +1369,18 @@ function App() {
       const darkSvg =
         "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><rect width='8' height='8' fill='%230a0a0a'/></svg>"
       if (MOBILE) {
-        globe.globeImageUrl(darkSvg).bumpImageUrl(darkSvg).showAtmosphere(false)
+        globe
+          .globeImageUrl(darkSvg)
+          .bumpImageUrl(darkSvg)
+          .showAtmosphere(true)
+          .atmosphereColor('#002233')
+          .atmosphereAltitude(0.25)
       } else {
         globe
           .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
           .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
           .showAtmosphere(true)
-          .atmosphereColor('#5aa3ff')
+          .atmosphereColor('#002233')
           .atmosphereAltitude(0.25)
       }
     }
