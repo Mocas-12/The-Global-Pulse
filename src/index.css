@@ -95,7 +95,7 @@ body {
 /* Holographic Slogan */
 .holo-slogan {
   position: absolute;
-  top: 14px;
+  top: 40vh;
   left: 50%;
   transform: translateX(-50%);
   width: 90vw;
@@ -114,6 +114,7 @@ body {
 
 @media (max-width: 768px) {
   .holo-slogan {
+    top: 14px;
     padding-top: 0;
     font-size: 14px;
     letter-spacing: 0.01em;
