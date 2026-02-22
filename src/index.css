@@ -114,7 +114,7 @@ body {
 
 @media (max-width: 768px) {
   .holo-slogan {
-    top: 32px;
+    top: 40px;
     padding-top: 0;
     font-size: 14px;
     letter-spacing: 0.01em;
