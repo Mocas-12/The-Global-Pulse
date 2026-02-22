@@ -48,7 +48,7 @@ const GlobalStatsPanel = ({ stats }) => {
       const isForcedMobile = new URLSearchParams(window.location.search).get('mobile') === '1'
       const m = isForcedMobile || window.innerWidth <= 768
       setIsMobile(m)
-      setPanelTop(m ? 140 : 20)
+      setPanelTop(m ? 100 : 20)
     }
     window.addEventListener('resize', onResize)
     onResize()
@@ -91,7 +91,7 @@ const GlobalStatsPanel = ({ stats }) => {
     left: '20px',
     top: `${panelTop}px`,
     zIndex: 10001,
-    marginTop: '40px',
+    marginTop: '16px',
     padding: '10px 14px',
     color: '#ffffff',
     background: 'rgba(0,20,40,0.65)',
