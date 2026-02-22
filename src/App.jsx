@@ -2048,6 +2048,7 @@ function App() {
         c.style.top = '0'
         c.style.width = '100vw'
         c.style.height = '100vh'
+        c.style.transform = 'translateZ(0)'
       }
       fit()
       const ctx = c.getContext('2d')
@@ -2073,10 +2074,7 @@ function App() {
         if (!ctx) return
         const dpr2 = Math.max(1, Math.min(2, window.devicePixelRatio || 1))
         ctx.globalCompositeOperation = 'source-over'
-        ctx.globalAlpha = 0.15
-        ctx.fillStyle = '#000'
-        ctx.fillRect(0, 0, c.width, c.height)
-        ctx.globalAlpha = 1
+        ctx.clearRect(0, 0, c.width, c.height)
         ctx.globalCompositeOperation = 'lighter'
         const arr = meteorsRef.current
         const now = ts
@@ -2119,9 +2117,10 @@ function App() {
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 1,
+          zIndex: 0,
           pointerEvents: 'none',
           background: 'transparent',
+          transform: 'translateZ(0)',
         }}
       />
     )
