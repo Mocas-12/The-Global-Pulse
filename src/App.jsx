@@ -832,41 +832,27 @@ function App() {
     const c1 = p0.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const c2 = p3.clone().normalize().multiplyScalar(1 + alt * 1.5)
     const curve = new THREE.CubicBezierCurve3(p0, c1, c2, p3)
-    const points = curve.getPoints(N - 1)
     const mat = new THREE.MeshStandardMaterial({
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       emissive: type === 'birth' ? 0x00ff88 : 0xff4444,
-      emissiveIntensity: 50,
+      emissiveIntensity: 15,
       metalness: 0,
       roughness: 0.35,
       transparent: true,
       opacity: 1,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
     })
-    const initialPts = points.slice(0, 2)
-    const initialCurve = new THREE.CatmullRomCurve3(initialPts)
-    const initialGeom = new THREE.TubeGeometry(initialCurve, 16, 0.2, 8, false)
-    const line = new THREE.Mesh(initialGeom, mat)
+    const tubeGeom = new THREE.TubeGeometry(curve, N * 2, 0.2, 8, false)
+    tubeGeom.setDrawRange(0, 2)
+    const line = new THREE.Mesh(tubeGeom, mat)
     line.renderOrder = 999999
     line.frustumCulled = false
     line.layers.set(0)
-    const grp = manualArcsGroupRef.current
-    {
-      const vCN = latLngToVec3(35, 105, 1.2)
-      const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(5, 5, 5),
-        new THREE.MeshBasicMaterial({ color: 0xff0000 })
-      )
-      cube.position.copy(vCN)
-      cube.renderOrder = 1000000
-      grp.add(cube)
-      setTimeout(() => {
-        grp.remove(cube)
-        if (cube.geometry) cube.geometry.dispose()
-        if (cube.material) cube.material.dispose()
-      }, 1200)
+    line.onBeforeRender = (renderer) => {
+      renderer.clearDepth()
     }
+    const grp = manualArcsGroupRef.current
     if (grp.children.length >= ARC_MAX_CONCURRENT) {
       const old = grp.children[0]
       grp.remove(old)
@@ -875,21 +861,21 @@ function App() {
     }
     grp.add(line)
     let head = 0
-    const tail = Math.floor(N * 0.15)
+    let frameCount = 0
+    const totalVerts = tubeGeom.attributes.position.count
+    const tailVerts = Math.max(2, Math.floor(totalVerts * 0.15))
     const step = N / (ARC_ANIM_MS / 1000 * 60)
     const update = () => {
       head += step
-      const start = Math.max(0, Math.floor(head - tail))
-      const count = Math.max(2, Math.min(N - 1, Math.floor(head)) - start)
-      const segPts = points.slice(start, start + count)
-      if (segPts.length >= 2) {
-        const partialCurve = new THREE.CatmullRomCurve3(segPts)
-        const newGeom = new THREE.TubeGeometry(partialCurve, Math.max(8, segPts.length * 2), 0.2, 8, false)
-        const oldGeom = line.geometry
-        line.geometry = newGeom
-        if (oldGeom) oldGeom.dispose()
+      const progress = Math.min(1, head / N)
+      const headVerts = Math.max(2, Math.floor(totalVerts * progress))
+      const start = Math.max(0, headVerts - tailVerts)
+      const count = Math.max(2, headVerts - start)
+      tubeGeom.setDrawRange(start, count)
+      frameCount += 1
+      if (frameCount % 60 === 0) {
+        console.log('[ManualArc] pos=', line.position, 'visible=', line.visible)
       }
-      console.log('[ManualArc] tube segments=', count)
       if (head >= N) {
         cleanup()
         return
@@ -1813,7 +1799,7 @@ function App() {
     const lastDistRef = { current: 0 }
     const updateOpacity = () => {
       if (!pinsRef.current.length) return
-      const amb = new THREE.AmbientLight(0xffffff, 0.6)
+      const amb = new THREE.AmbientLight(0xffffff, 0.2)
       scene.add(amb)
       const cam = globe.camera()
       const dist = cam.position.distanceTo(globe.controls().target)
@@ -1857,6 +1843,9 @@ function App() {
 
     const scene = typeof globe.scene === 'function' ? globe.scene() : null
     if (scene) {
+      const dir = new THREE.DirectionalLight(0xffffff, 1.2)
+      dir.position.set(100, 100, 100)
+      scene.add(dir)
       const grp = new THREE.Group()
       grp.renderOrder = 999999
       grp.position.y = globeOffsetYRef.current
@@ -2266,10 +2255,20 @@ function App() {
         const base = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL ? import.meta.env.BASE_URL : '/'
         const data = await tryFetch(`${base}datasets/countries.geojson`)
         setGeoFeatures(data.features || [])
-      } catch (e) {
-        const _e = e
-        void _e
-        setGeoFeatures([])
+      } catch {
+        try {
+          const alt = await tryFetch('https://unpkg.com/three-globe/example/datasets/ne_110m_admin_0_countries.geojson')
+          console.warn('Fallback to remote GeoJSON: ne_110m_admin_0_countries.geojson')
+          setGeoFeatures(alt.features || [])
+        } catch {
+          try {
+            const alt2 = await tryFetch('https://unpkg.com/three-globe/example/datasets/countries.geojson')
+            console.warn('Fallback to remote GeoJSON: countries.geojson')
+            setGeoFeatures(alt2.features || [])
+          } catch {
+            setGeoFeatures([])
+          }
+        }
       }
     }
     load()
@@ -2279,15 +2278,16 @@ function App() {
     if (!globeRef.current) return
     try {
       globeRef.current
-        .polygonsData(geoFeatures)
-        .polygonCapColor(() => 'rgba(0,255,136,0.10)')
-        .polygonSideColor(() => 'rgba(0,255,136,0.02)')
-        .polygonStrokeColor(() => 'rgba(0,255,136,0.25)')
+        .polygonsData(CHINA_GEOJSON.features)
+        .polygonCapColor(() => 'rgba(0, 255, 136, 0.15)')
+        .polygonSideColor(() => 'rgba(0, 255, 136, 0.0)')
+        .polygonStrokeColor(() => '#00ff88')
+        .polygonAltitude(() => 0.018)
     } catch (e) {
       const _e = e
       void _e
     }
-  }, [globeRef, geoFeatures])
+  }, [globeRef, CHINA_GEOJSON])
 
 
   return (
