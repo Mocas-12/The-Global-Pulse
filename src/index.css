@@ -95,7 +95,7 @@ body {
 /* Holographic Slogan */
 .holo-slogan {
   position: absolute;
-  top: 28px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   width: 90vw;
@@ -114,12 +114,13 @@ body {
 
 @media (max-width: 768px) {
   .holo-slogan {
-    padding-top: 2rem;
+    padding-top: 0;
     font-size: 14px;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    letter-spacing: 0.01em;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.4;
   }
   .warning-ticker {
     height: 22px;
