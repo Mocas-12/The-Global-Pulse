@@ -786,6 +786,30 @@ function App() {
     }),
     []
   )
+  const CHINA_GEOJSON = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name: 'China', iso_a2: 'CN' },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [73, 18],
+                [135, 18],
+                [135, 53],
+                [73, 53],
+                [73, 18],
+              ],
+            ],
+          },
+        },
+      ],
+    }),
+    []
+  )
   const arcRateRef = useRef({ sec: 0, count: 0 })
   const ARC_MAX_CONCURRENT = MOBILE ? 10 : 30
   const ARC_PER_SEC_LIMIT = MOBILE ? 3 : 8
@@ -812,12 +836,12 @@ function App() {
     const mat = new THREE.MeshStandardMaterial({
       color: type === 'birth' ? 0x00ff88 : 0xff4444,
       emissive: type === 'birth' ? 0x00ff88 : 0xff4444,
-      emissiveIntensity: 5,
+      emissiveIntensity: 50,
       metalness: 0,
       roughness: 0.35,
       transparent: true,
       opacity: 1,
-      depthTest: true,
+      depthTest: false,
       depthWrite: false,
     })
     const initialPts = points.slice(0, 2)
@@ -828,6 +852,21 @@ function App() {
     line.frustumCulled = false
     line.layers.set(0)
     const grp = manualArcsGroupRef.current
+    {
+      const vCN = latLngToVec3(35, 105, 1.2)
+      const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(5, 5, 5),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      )
+      cube.position.copy(vCN)
+      cube.renderOrder = 1000000
+      grp.add(cube)
+      setTimeout(() => {
+        grp.remove(cube)
+        if (cube.geometry) cube.geometry.dispose()
+        if (cube.material) cube.material.dispose()
+      }, 1200)
+    }
     if (grp.children.length >= ARC_MAX_CONCURRENT) {
       const old = grp.children[0]
       grp.remove(old)
@@ -1389,6 +1428,10 @@ function App() {
     resize()
     window.addEventListener('resize', resize)
     globe.onPointClick(() => {})
+    globe
+      .polygonsData(CHINA_GEOJSON.features)
+      .polygonCapColor(() => 'rgba(0,255,136,0.25)')
+      .polygonSideColor(() => 'rgba(0,255,136,0.0)')
 
     // 移除所有 hover/out 相关逻辑，关闭仅由背景点击触发
     globe.onPolygonClick((f, e) => {
@@ -1482,12 +1525,19 @@ function App() {
         path.setAttribute('stroke-dashoffset', '0')
         lineRef.current = path
         svg.appendChild(path)
-        try {
-          gsap.to(path, { attr: { 'stroke-dashoffset': -50 }, duration: 1.2, ease: 'linear', repeat: -1 })
-        } catch (e) {
-          const _e = e
-          void _e
+        let last = performance.now()
+        let dash = 0
+        const dashLoop = () => {
+          const now = performance.now()
+          const dt = (now - last) / 1000
+          last = now
+          dash -= 50 * dt
+          path.setAttribute('stroke-dashoffset', `${dash}`)
+          if (lineRef.current === path) {
+            path._raf = requestAnimationFrame(dashLoop)
+          }
         }
+        path._raf = requestAnimationFrame(dashLoop)
         const joint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
         joint.setAttribute('r', '2.5')
         joint.setAttribute('fill', '#00f2ff')
@@ -1698,22 +1748,16 @@ function App() {
         const len = Math.hypot(x2 - x1, y2 - y1)
         lineRef.current.setAttribute('stroke-dasharray', `${len}`)
         lineRef.current.setAttribute('stroke-dashoffset', `0`)
-        try {
-          gsap.to(lineRef.current, {
-            attr: { 'stroke-dashoffset': len },
-            duration: 0.25,
-            ease: 'power2.in',
-            onComplete: () => {
-              if (lineRef.current && lineRef.current.parentElement) {
-                lineRef.current.parentElement.removeChild(lineRef.current)
-              }
-              lineRef.current = null
-            },
-          })
-        } catch (e) {
-          const _e = e
-          void _e
+        if (lineRef.current && lineRef.current._raf) {
+          cancelAnimationFrame(lineRef.current._raf)
+          lineRef.current._raf = null
         }
+        setTimeout(() => {
+          if (lineRef.current && lineRef.current.parentElement) {
+            lineRef.current.parentElement.removeChild(lineRef.current)
+          }
+          lineRef.current = null
+        }, 200)
       }
       overlaysRef.current = []
       refreshHtml()
@@ -1791,24 +1835,19 @@ function App() {
             const target = 0
             const current = parseFloat(p.el.style.opacity) || 0
             if (Math.abs(target - current) > 0.05) {
-              gsap.to(p.el, {
-                opacity: target,
-                duration: 0.2,
-                ease: 'power2.out',
-                overwrite: 'auto',
-              })
+              p.el.style.opacity = `${target}`
             }
           } else if (dist <= 200) {
             const target = 1
             const current = parseFloat(p.el.style.opacity) || 0
             if (Math.abs(target - current) > 0.05) {
-              gsap.to(p.el, { opacity: target, duration: 0.2, ease: 'power2.out', overwrite: 'auto' })
+              p.el.style.opacity = `${target}`
             }
           } else {
             const target = (300 - dist) / 100
             const current = parseFloat(p.el.style.opacity) || 0
             if (Math.abs(target - current) > 0.05) {
-              gsap.to(p.el, { opacity: target, duration: 0.2, ease: 'power2.out', overwrite: 'auto' })
+              p.el.style.opacity = `${target}`
             }
           }
         }
@@ -1826,7 +1865,6 @@ function App() {
       grp.renderOrder = 999999
       grp.position.y = globeOffsetYRef.current
       grp.layers.set(0)
-      scene.add(grp)
       manualArcsGroupRef.current = grp
       const fxGroup = new THREE.Group()
       fxGroup.position.y = globeOffsetYRef.current
@@ -1858,6 +1896,7 @@ function App() {
       cam.far = 20000
       cam.layers.set(0)
       cam.updateProjectionMatrix()
+      scene.add(grp)
       manualArcsGroupRef.current.onBeforeRender = () => {
         const g = manualArcsGroupRef.current
         if (!g) return
