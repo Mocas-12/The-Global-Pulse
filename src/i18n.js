@@ -4,7 +4,7 @@ export const LANGS = ['zh', 'en', 'ja']
 export const T = {
   zh: {
     title: '全球人口脉搏',
-    subtitle: '每一秒,都是某个人的终点,亦是某个人的起点。',
+    subtitle: '万物皆逝，万物皆始。',
     live: '实时',
     worldPop: '世界人口',
     birthsYear: '今年出生',
@@ -40,7 +40,7 @@ export const T = {
   },
   en: {
     title: 'The Global Pulse',
-    subtitle: 'Every second is an ending for someone — and a beginning for another.',
+    subtitle: 'All things fade; all things begin.',
     live: 'LIVE',
     worldPop: 'World Population',
     birthsYear: 'Births this year',
@@ -76,7 +76,7 @@ export const T = {
   },
   ja: {
     title: 'グローバル・パルス',
-    subtitle: '毎秒、誰かの終わりであり、誰かの始まりでもある。',
+    subtitle: '万物は逝き、万物は始まる。',
     live: 'ライブ',
     worldPop: '世界人口',
     birthsYear: '今年の出生数',
