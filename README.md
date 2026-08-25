@@ -4,6 +4,8 @@
 
 > 每一秒,都是某个人的终点,亦是某个人的起点。
 
+**🔗 在线访问: <https://mocas-12.github.io/The-Global-Pulse/>**
+
 ![tech](https://img.shields.io/badge/React_19-Vite_7-61dafb) ![data](https://img.shields.io/badge/数据-世界银行_2024-00b0ff) ![map](https://img.shields.io/badge/边界-Natural_Earth-2affb4)
 
 ## ✨ 特性
