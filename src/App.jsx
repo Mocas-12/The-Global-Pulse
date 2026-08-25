@@ -8,7 +8,7 @@ import { worldEngine, DEATH_CAUSES, REFERENCE_FACTS } from './engine/worldEngine
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
-  ensureCtx, startAmbient, playBirth, playDeath, setMuted, isMuted,
+  ensureCtx, startAmbient, stopAmbient, playBirth, playDeath, setMuted, isMuted,
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
@@ -318,7 +318,8 @@ export default function App() {
     // 交互
     world.onPolygonClick((f) => {
       const iso3 = f.__iso3
-      ensureCtx()
+      // 注意: 此处不可调用 ensureCtx(), 否则任何点击都会解锁 AudioContext,
+      // 导致静音模式下首次点击后音效突然涌出
       setSelectedIso((prev) => (prev === iso3 ? null : iso3))
     })
     world.onGlobeClick(() => setSelectedIso(null))
@@ -431,13 +432,20 @@ export default function App() {
     }
   }, [geoLoaded])
 
-  // 声音开关(首次交互解锁 AudioContext)
+  // 声音开关(仅在用户主动开启声音时解锁 AudioContext)
   const toggleSound = useCallback(() => {
-    ensureCtx()
-    const next = !isMuted()
-    setMuted(next)
-    if (!next) startAmbient()
-    setSoundOn(!next)
+    if (isMuted()) {
+      // 开启声音: 此时才创建/恢复 AudioContext 并启动环境音景
+      ensureCtx()
+      setMuted(false)
+      startAmbient()
+      setSoundOn(true)
+    } else {
+      // 关闭声音: 仅置静音, 环境音景淡出
+      setMuted(true)
+      stopAmbient()
+      setSoundOn(false)
+    }
   }, [])
 
   // 键盘 Esc 关闭

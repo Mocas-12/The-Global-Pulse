@@ -3,7 +3,7 @@ let ctx = null
 let master = null
 let ambient = null
 let ambientRunning = false
-let muted = false
+let muted = true // 默认静音, 仅用户点击右上角声音按钮后开启
 const lastPlay = { birth: 0, death: 0 }
 const MIN_INTERVAL = 150
 
@@ -157,14 +157,15 @@ export function startAmbient() {
 export function stopAmbient() {
   if (!ambient || !ambientRunning) return
   ambientRunning = false
-  if (ambient.timer) clearInterval(ambient.timer)
+  const amb = ambient
+  ambient = null // 立即复位, 保证随后可重新 startAmbient()
+  if (amb.timer) clearInterval(amb.timer)
   try {
     const t = ctx.currentTime
-    ambient.nodes[0].gain.cancelScheduledValues(t)
-    ambient.nodes[0].gain.linearRampToValueAtTime(0, t + 1)
+    amb.nodes[0].gain.cancelScheduledValues(t)
+    amb.nodes[0].gain.linearRampToValueAtTime(0, t + 1)
     setTimeout(() => {
-      ambient.nodes.forEach((n) => { try { n.stop?.(); n.disconnect() } catch { /* noop */ } })
-      ambient = null
+      amb.nodes.forEach((n) => { try { n.stop?.(); n.disconnect() } catch { /* noop */ } })
     }, 1200)
   } catch { /* noop */ }
 }
