@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101c30"/>
+      <stop offset="1" stop-color="#060d1a"/>
+    </linearGradient>
+    <radialGradient id="globe" cx="0.38" cy="0.3" r="0.95">
+      <stop offset="0" stop-color="#1b4f72"/>
+      <stop offset="0.55" stop-color="#0e2a4a"/>
+      <stop offset="1" stop-color="#081527"/>
+    </radialGradient>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#4da3ff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.28" r="0.9">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="4" y="4" width="88" height="88" rx="20" fill="url(#bg)" stroke="rgba(255,255,255,0.14)" stroke-width="1.5"/>
+  <rect x="4" y="4" width="88" height="88" rx="20" fill="url(#glow)"/>
+
+  <!-- 星点 -->
+  <circle cx="22" cy="24" r="1.1" fill="#94d2ff" opacity="0.8"/>
+  <circle cx="76" cy="72" r="1" fill="#94d2ff" opacity="0.55"/>
+  <circle cx="80" cy="20" r="0.9" fill="#94d2ff" opacity="0.45"/>
+
+  <!-- 轨道环 -->
+  <ellipse cx="48" cy="48" rx="39" ry="13" fill="none" stroke="#22d3ee" stroke-width="1.3" opacity="0.5" transform="rotate(-16 48 48)"/>
+
+  <!-- 地球 -->
+  <circle cx="48" cy="48" r="26" fill="url(#globe)" stroke="url(#stroke)" stroke-width="2"/>
+  <ellipse cx="48" cy="48" rx="11" ry="26" fill="none" stroke="#22d3ee" stroke-width="1.1" opacity="0.55"/>
+  <ellipse cx="48" cy="48" rx="20" ry="26" fill="none" stroke="#22d3ee" stroke-width="0.9" opacity="0.35"/>
+  <ellipse cx="48" cy="48" rx="26" ry="9.5" fill="none" stroke="#22d3ee" stroke-width="1" opacity="0.45"/>
+  <ellipse cx="48" cy="48" rx="26" ry="18" fill="none" stroke="#22d3ee" stroke-width="0.7" opacity="0.25"/>
+
+  <!-- 脉搏折线（ECG） -->
+  <path d="M24 48 h9 l4 -7 l5 14 l4 -10 l3 3 h23" fill="none" stroke="#2affb4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 出生 / 死亡光点 -->
+  <circle cx="70" cy="27" r="3" fill="#2affb4"/>
+  <circle cx="70" cy="27" r="5.5" fill="none" stroke="#2affb4" stroke-width="1" opacity="0.45"/>
+  <circle cx="27" cy="68" r="3" fill="#ff5470"/>
+  <circle cx="27" cy="68" r="5.5" fill="none" stroke="#ff5470" stroke-width="1" opacity="0.45"/>
+</svg>
