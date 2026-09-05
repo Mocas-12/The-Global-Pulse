@@ -4,9 +4,9 @@
 
 /* ————————————————— 基础 ————————————————— */
 :root {
-  --bg: #030712;
-  --panel-bg: rgba(8, 15, 30, 0.72);
-  --panel-border: rgba(56, 189, 248, 0.18);
+  --bg: #01030a;
+  --panel-bg: rgba(6, 12, 26, 0.60);
+  --panel-border: rgba(120, 180, 255, 0.14);
   --cyan: #22d3ee;
   --cyan-soft: rgba(34, 211, 238, 0.75);
   --birth: #2affb4;
@@ -34,28 +34,44 @@ body {
 .app-root {
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 42%, rgba(14, 42, 74, 0.5) 0%, transparent 70%),
-    radial-gradient(ellipse at 50% 120%, rgba(8, 47, 73, 0.35) 0%, transparent 60%),
-    var(--bg);
+  background: var(--bg);
 }
 
-/* 背景网格 */
-.bg-grid {
+/* 深空星云底色: 极淡的两团冷光, 让星空有纵深 */
+.bg-nebula {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, black 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, black 30%, transparent 75%);
+  background:
+    radial-gradient(ellipse 55% 45% at 68% 28%, rgba(24, 52, 110, 0.20) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 40% at 22% 78%, rgba(10, 68, 88, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 50%, rgba(4, 10, 24, 0.0) 40%, rgba(1, 2, 8, 0.8) 100%),
+    var(--bg);
+}
+
+/* 边缘暗角: 电影镜头感 */
+.bg-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse 78% 70% at 50% 48%, transparent 55%, rgba(0, 0, 2, 0.55) 100%);
+}
+
+/* 胶片颗粒 */
+.bg-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.038;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 .globe-container {
   position: absolute;
   inset: 0;
+  z-index: 1;
   cursor: grab;
 }
 .globe-container:active { cursor: grabbing; }
@@ -63,27 +79,110 @@ body {
 .loading-mask {
   position: absolute;
   inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   color: var(--cyan-soft);
-  font-size: 14px;
-  letter-spacing: 0.3em;
+  font-size: 13px;
+  letter-spacing: 0.32em;
   animation: pulse-opacity 1.6s ease-in-out infinite;
+}
+.loading-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 14px var(--cyan);
 }
 @keyframes pulse-opacity { 50% { opacity: 0.35; } }
 
-/* ————————————————— 面板通用 ————————————————— */
+/* ————————————————— 开场标题(电影式渐显) ————————————————— */
+.intro-title {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.9s ease 0.5s;
+  background: radial-gradient(ellipse 62% 42% at 50% 50%, rgba(1, 3, 10, 0.58) 0%, transparent 78%);
+}
+.app-root.ready .intro-title { opacity: 1; }
+.app-root.ready .intro-title.gone {
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+.intro-title h1 {
+  margin: 0;
+  font-size: clamp(30px, 6.2vw, 70px);
+  font-weight: 200;
+  letter-spacing: 0.42em;
+  padding-left: 0.42em; /* 补偿末字符间距, 视觉居中 */
+  color: #eef7ff;
+  text-shadow:
+    0 0 34px rgba(88, 186, 255, 0.38),
+    0 2px 34px rgba(0, 0, 0, 0.65);
+  transition: letter-spacing 2.6s ease, text-shadow 1.5s ease;
+}
+.app-root.ready .intro-title.gone h1 {
+  letter-spacing: 0.56em;
+  text-shadow: none;
+}
+.intro-title p {
+  margin: 20px 0 0;
+  font-size: clamp(11px, 1.5vw, 14.5px);
+  font-weight: 300;
+  letter-spacing: 0.56em;
+  padding-left: 0.56em;
+  color: rgba(150, 202, 238, 0.72);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.6);
+}
+.intro-rule {
+  width: 1px;
+  height: 46px;
+  margin-bottom: 28px;
+  background: linear-gradient(180deg, transparent, rgba(120, 220, 255, 0.75), transparent);
+}
+
+/* ————————————————— 面板通用(深空玻璃) ————————————————— */
 .panel {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(148, 233, 255, 0.08);
+    0 12px 44px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(160, 220, 255, 0.10);
 }
+
+/* 开场错峰入场: 失焦 + 淡入 */
+.news-ticker, .slogan, .stats-panel, .top-right, .hint {
+  opacity: 0;
+  filter: blur(7px);
+  transition:
+    opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.app-root.booted .news-ticker,
+.app-root.booted .slogan,
+.app-root.booted .stats-panel,
+.app-root.booted .top-right,
+.app-root.booted .hint {
+  opacity: 1;
+  filter: blur(0);
+}
+.news-ticker { transition-delay: 0.10s; }
+.slogan      { transition-delay: 0.35s; }
+.stats-panel { transition-delay: 0.60s; }
+.top-right   { transition-delay: 0.85s; }
+.hint        { transition-delay: 1.10s; }
 
 /* ————————————————— 顶部快讯 ————————————————— */
 .news-ticker {
@@ -96,8 +195,8 @@ body {
   z-index: 40;
   display: flex;
   align-items: center;
-  background: linear-gradient(90deg, rgba(3, 7, 18, 0.9), rgba(8, 15, 30, 0.65) 30%, rgba(8, 15, 30, 0.65) 70%, rgba(3, 7, 18, 0.9));
-  border-bottom: 1px solid rgba(56, 189, 248, 0.12);
+  background: linear-gradient(90deg, rgba(1, 3, 10, 0.92), rgba(4, 10, 22, 0.55) 30%, rgba(4, 10, 22, 0.55) 70%, rgba(1, 3, 10, 0.92));
+  border-bottom: 1px solid rgba(120, 180, 255, 0.10);
   mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
 }
@@ -123,13 +222,15 @@ body {
 /* ————————————————— 标语 ————————————————— */
 .slogan {
   position: fixed;
-  top: 52px;
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 30;
-  font-size: 13px;
-  letter-spacing: 0.28em;
-  color: rgba(148, 197, 233, 0.5);
+  font-size: 12.5px;
+  font-weight: 300;
+  letter-spacing: 0.34em;
+  padding-left: 0.34em;
+  color: rgba(148, 197, 233, 0.55);
   text-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
   pointer-events: none;
   white-space: nowrap;
@@ -186,11 +287,11 @@ body {
   margin-bottom: 2px;
 }
 .big-value {
-  font-size: 27px;
+  font-size: 28px;
   font-weight: 600;
-  color: #fff;
-  letter-spacing: 0.04em;
-  text-shadow: 0 0 22px rgba(56, 189, 248, 0.45);
+  color: #f4faff;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 24px rgba(56, 189, 248, 0.42);
   font-variant-numeric: tabular-nums;
 }
 
@@ -222,7 +323,7 @@ body {
 .divider {
   height: 1px;
   margin: 12px 0 10px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.25), transparent);
+  background: linear-gradient(90deg, transparent, rgba(120, 189, 248, 0.22), transparent);
 }
 
 .section-title {
@@ -363,9 +464,10 @@ body {
   display: flex;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 9px;
+  border-radius: 10px;
   overflow: hidden;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
 }
 .lang-switch button {
   background: none;
@@ -378,7 +480,7 @@ body {
   transition: all 0.15s;
   letter-spacing: 0.05em;
 }
-.lang-switch button + button { border-left: 1px solid rgba(56, 189, 248, 0.12); }
+.lang-switch button + button { border-left: 1px solid rgba(120, 180, 255, 0.10); }
 .lang-switch button.on {
   color: #fff;
   background: rgba(34, 211, 238, 0.14);
@@ -387,13 +489,14 @@ body {
 .sound-btn {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 9px;
+  border-radius: 10px;
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: 12px;
   padding: 6px 10px;
   cursor: pointer;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
   transition: all 0.15s;
 }
 .sound-btn.on {
@@ -424,6 +527,8 @@ body {
     white-space: normal;
     text-align: center;
   }
+  .intro-title h1 { font-size: 26px; letter-spacing: 0.3em; padding-left: 0.3em; }
+  .intro-title p { font-size: 10px; letter-spacing: 0.34em; padding-left: 0.34em; }
   .stats-panel {
     left: 10px;
     right: 10px;

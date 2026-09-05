@@ -39,11 +39,13 @@
 
 ## ✨ Features
 
-- 🌍 **Real borders** — Natural Earth 110m administrative boundaries, with precise outlines rendered for 177 countries/regions
+- 🌍 **Realistic Earth** — NASA Blue Marble 4K day texture + Black Marble night city lights + cloud layer and atmospheric-scattering glow; public-domain imagery localized, no external network dependency
+- ☀️ **Live day/night terminator** — the subsolar point is computed from real UTC time; custom shaders blend day/night per frame with a warm sunset band and ocean sun glint, so you can see at a glance where it is daytime right now
+- 🗺️ **Real borders** — Natural Earth 110m administrative boundaries, 177 countries/regions rendered precisely with log-scaled population tint and hover highlight
 - 📊 **Real data** — World Bank 2024 population / crude birth rate / crude death rate (SP.POP.TOTL / SP.DYN.CBRT.IN / SP.DYN.CDRT.IN), covering 217 economies
-- 💓 **Real-time simulation** — global births / deaths / net growth simulated second by second at each country's real rates, with pulse lights landing **inside real national borders**, weighted by birth/death rates
-- 🎨 **Population coloring** — country polygons colored on a log scale by population size (deep navy → bright cyan)
-- 🗺️ **Country details** — click any country to see its population, rank, births/deaths today, birth/death rates, and share of the global total (data year noted)
+- 💓 **Real-time simulation** — global births / deaths / net growth simulated second by second at each country's real rates; pulses land **inside real national borders** as a flash + expanding shockwave ring
+- 🎬 **Cinematic intro** — deep-space camera fly-in + title fade sequence + panels defocusing in; procedural twinkling starfield and film-grain atmosphere
+- 🗺️ **Country details** — click any country and the camera flies in; see population, rank, births/deaths today, birth/death rates, and share of the global total (data year noted)
 - 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
 - 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation
 - 🈶 **Trilingual interface** — 中文 / English / 日本語
@@ -53,12 +55,12 @@
 
 | Element | Design |
 | --- | --- |
-| Theme | Deep-space starfield: near-black navy base + grid texture + starry ambience |
-| Panels | Glassmorphism: translucent fills + backdrop blur + thin cyan strokes |
+| Theme | Deep-space cinematic: near-black base + faint nebula + vignette and film grain, procedural twinkling starfield |
+| Panels | Glassmorphism: translucent dark fills + backdrop blur & saturation + thin strokes + top hairline |
 | Accent colors | Sky cyan `#38bdf8` primary; birth green `#2affb4` · death red `#ff5470` dual semantic colors |
-| Hero visual | 3D globe: dark textures + terrain relief + log-scale population-colored borders |
-| Motion | Breathing pulse lights; GSAP-driven number roll-ups and panel transitions |
-| Layout | Top scrolling ticker + left statistics panel + click-to-open country cards |
+| Hero visual | 3D realistic globe: NASA day/night textures + live terminator + atmospheric scattering + clouds; countries as thin strokes with faint tint |
+| Motion | Birth/death flash + shockwave rings; intro camera fly-in and title fade; GSAP number roll-ups |
+| Layout | Top scrolling ticker + left statistics panel + click-to-open country cards (camera flies in) |
 
 ## 🧠 How It Works
 
@@ -72,7 +74,7 @@ flowchart LR
 1. **Data pipeline**: `scripts/fetch_data.py` downloads the latest Natural Earth border GeoJSON and pulls all World Bank data since 2015 for the three indicators, taking each country's latest value
 2. **Real-time simulation**: with World Bank annual crude birth/death rates as the rate, "today / this year" figures are integrated from local midnight / the start of the year; the world population base is the sum of each country's 2024 estimate (about 8.21 billion)
 3. **Landing-point sampling**: pulse lights are weighted by each country's birth/death rate and randomly sampled to land inside real national-border polygons
-4. **Rendering & interaction**: globe.gl + three.js render the globe and lights, GSAP drives the animations, and clicking a country opens a details card
+4. **Rendering & interaction**: globe.gl + three.js render the globe and pulses; `src/engine/globeFX.js` provides custom shaders — the subsolar point is computed from UTC in real time via a low-precision astronomical algorithm (±0.01°), blending day/night textures, ocean glint and atmospheric scattering every frame; GSAP drives the animations, and clicking a country flies the camera in and opens a details card
 5. **Synthesized audio**: Web Audio synthesizes birth/death chimes and an ambient soundscape in real time — no audio files at all
 
 ## 📁 Project Structure
@@ -84,16 +86,17 @@ The-Global-Pulse/
 ├── scripts/
 │   └── fetch_data.py        # Data pipeline: borders + World Bank indicators
 ├── src/
-│   ├── App.jsx              # Main app (globe rendering / panels / interaction)
+│   ├── App.jsx              # Main app (globe rendering / panels / interaction / intro)
 │   ├── engine/worldEngine.js # Data engine: real rates → real-time simulation + random sampling inside borders
+│   ├── engine/globeFX.js    # Visual engine: day/night lighting / atmosphere / clouds / starfield / ripple shaders
 │   ├── audio/audioEngine.js # Web Audio synthesized sound effects
 │   ├── data/worldBankData.json # World Bank 2024 indicators (generated by script)
 │   ├── i18n.js              # Trilingual copy
 │   ├── news.js              # Scrolling ticker generation
-│   └── index.css            # Deep-space starfield theme (glassmorphism panels)
+│   └── index.css            # Deep-space cinematic theme (glassmorphism panels / intro sequence)
 └── public/
     ├── datasets/countries.geojson # Natural Earth borders (generated by script)
-    └── img/                  # Globe textures (localized, no external network dependency)
+    └── img/                  # NASA globe textures: 4K day / night lights / water mask / clouds
 ```
 
 ## 🚀 Quick Start
@@ -151,6 +154,8 @@ npm run dev        # Dev: http://localhost:5173
 
 - [World Bank Open Data](https://data.worldbank.org/) — population and crude birth/death rates
 - [Natural Earth](https://www.naturalearthdata.com/) — administrative boundaries
+- [NASA Blue Marble Next Generation](https://visibleearth.nasa.gov/collection/1484/blue-marble-next-generation) — day-side surface texture (public domain)
+- [NASA Black Marble — Earth at Night](https://earthobservatory.nasa.gov/features/NightLights) — night-side city lights texture (public domain)
 - [WHO / UN IGME / UNAIDS / UNODC](https://www.who.int/data/global-health-estimates) — cause-of-death estimates
 
 ## 📄 License

@@ -1,10 +1,15 @@
 // App.jsx — The Global Pulse · 全球人口脉搏
 // 真实国界(Natural Earth) + 真实数据(世界银行 2024) + 实时推演
+// 视觉: NASA 昼/夜贴图 + 实时太阳晨昏线 + 大气散射 + 云层 + 星空 + 涟漪脉冲
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe from 'globe.gl'
 import { gsap } from 'gsap'
 import * as THREE from 'three'
 import { worldEngine, DEATH_CAUSES, REFERENCE_FACTS } from './engine/worldEngine'
+import {
+  sunLatLon, latLngToVec3, createGlobeMaterial, createAtmosphere,
+  createClouds, createStarfield, createRings,
+} from './engine/globeFX'
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
@@ -12,8 +17,16 @@ import {
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
-const GLOBE_IMG = `${BASE}img/earth-dark.jpg`
-const BUMP_IMG = `${BASE}img/earth-topology.png`
+const TEX = {
+  day: `${BASE}img/earth-day-4k.jpg`,
+  dayFallback: `${BASE}img/earth-dark.jpg`,
+  night: `${BASE}img/earth-night.jpg`,
+  water: `${BASE}img/earth-water-4k.png`,
+  clouds: `${BASE}img/clouds.jpg`,
+}
+
+const GLOBE_R = 100
+const PULSE_R = 101.8 // 高于国家多边形表面(101)与云层(100.6), 避免遮挡
 
 const fmt = (n, lang) => {
   try {
@@ -58,7 +71,7 @@ function NewsTicker({ lang }) {
   ))
   return (
     <div className="news-ticker" aria-hidden="true">
-      <div className="ticker-track">{seq}{seq.map((el, i) => ({ ...el, key: `b${el.key}` }))}</div>
+      <div className="ticker-track">{seq}{seq.map((el) => ({ ...el, key: `b${el.key}` }))}</div>
     </div>
   )
 }
@@ -224,14 +237,19 @@ function CountryCard({ detail, lang, onClose }) {
 export default function App() {
   const containerRef = useRef(null)
   const globeRef = useRef(null)
+  const fxRef = useRef(null) // 地球特效句柄: 材质/网格/脉冲缓冲
+  const hoverIsoRef = useRef(null)
+  const selectedIsoRef = useRef(null)
+  const introDoneRef = useRef(false)
   const [lang, setLang] = useState(() => (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en')
   const t = T[lang]
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
   const [selectedIso, setSelectedIso] = useState(null)
   const [geoLoaded, setGeoLoaded] = useState(false)
+  const [ready, setReady] = useState(false)       // 地球+贴图就绪, 开场开始
+  const [booted, setBooted] = useState(false)     // 面板入场
+  const [introGone, setIntroGone] = useState(false) // 标题谢幕
   const [soundOn, setSoundOn] = useState(false)
-  const pulsesRef = useRef(new Map()) // el -> {lat,lng}
-  const hoverRef = useRef(null)
   const MOBILE = useMemo(() => window.innerWidth <= 768, [])
 
   // 引擎订阅
@@ -263,16 +281,21 @@ export default function App() {
       })
   }, [])
 
-  const hexColor = useCallback((f) => {
-    const c = worldEngine.countries[f.__iso3]
+  useEffect(() => { selectedIsoRef.current = selectedIso }, [selectedIso])
+
+  // 国家多边形着色: 人口对数 -> 淡填充, 让真实地表透出
+  const polygonCapColor = useCallback((f) => {
+    const iso = f.__iso3
+    if (iso === hoverIsoRef.current) return 'rgba(140, 225, 255, 0.42)'
+    if (iso === selectedIsoRef.current) return 'rgba(190, 240, 255, 0.36)'
+    const c = worldEngine.countries[iso]
     const pop = c?.population || 0
-    // 人口对数着色: 深海军蓝 -> 中蓝 -> 亮青(仅人口大国)
     const l = Math.log10(Math.max(pop, 1)) // 0 ~ 9.2
     const k = Math.min(1, Math.max(0, (l - 4.5) / 4.7))
     const stops = [
-      [8, 25, 60],
-      [10, 80, 130],
-      [0, 190, 230],
+      [12, 34, 72],
+      [16, 92, 140],
+      [24, 200, 235],
     ]
     const seg = k < 0.5 ? 0 : 1
     const p = k < 0.5 ? k * 2 : (k - 0.5) * 2
@@ -281,156 +304,327 @@ export default function App() {
     const r = Math.round(a[0] + (b[0] - a[0]) * p)
     const g = Math.round(a[1] + (b[1] - a[1]) * p)
     const bl = Math.round(a[2] + (b[2] - a[2]) * p)
-    const alpha = 0.5 + 0.38 * k
+    const alpha = 0.10 + 0.26 * k
     return `rgba(${r},${g},${bl},${alpha})`
   }, [])
 
-  // 初始化地球
+  const polygonStrokeColor = useCallback((f) => {
+    const iso = f.__iso3
+    if (iso === hoverIsoRef.current) return 'rgba(215, 245, 255, 0.95)'
+    if (iso === selectedIsoRef.current) return 'rgba(255, 255, 255, 0.85)'
+    const c = worldEngine.countries[iso]
+    const k = Math.min(1, Math.max(0, (Math.log10(Math.max(c?.population || 0, 1)) - 4.5) / 4.7))
+    return `rgba(150, 225, 255, ${0.22 + 0.3 * k})`
+  }, [])
+
+  const polygonAltitude = useCallback((f) => {
+    const iso = f.__iso3
+    return (iso === hoverIsoRef.current || iso === selectedIsoRef.current) ? 0.035 : 0.01
+  }, [])
+
+  // 强制重估多边形外观(悬停/选中变化时)
+  const refreshPolygons = useCallback(() => {
+    const w = globeRef.current
+    if (!w) return
+    w.polygonCapColor(polygonCapColor)
+    w.polygonStrokeColor(polygonStrokeColor)
+    w.polygonAltitude(polygonAltitude)
+  }, [polygonCapColor, polygonStrokeColor, polygonAltitude])
+
+  // ———————— 初始化地球 + 全部视觉特效 + 开场动画 ————————
   useEffect(() => {
     if (!geoLoaded || !containerRef.current || globeRef.current) return
-    const world = Globe({ animateIn: true })(containerRef.current)
-      .backgroundColor('rgba(3,7,18,0)')
-      .globeImageUrl(GLOBE_IMG)
-      .bumpImageUrl(BUMP_IMG)
-      .showAtmosphere(true)
-      .atmosphereColor('#3ba7ff')
-      .atmosphereAltitude(0.22)
-      .polygonsData(worldEngine.features)
-      .polygonCapColor(hexColor)
-      .polygonSideColor(() => 'rgba(0,229,255,0.06)')
-      .polygonStrokeColor(() => 'rgba(120,220,255,0.35)')
-      .polygonAltitude(0.008)
-      .polygonLabel((f) => '')
-    world.controls().enableDamping = true
-    world.controls().dampingFactor = 0.1
-    world.controls().enablePan = false
-    world.controls().minDistance = 150
-    world.controls().maxDistance = 800
-    world.renderer().setPixelRatio(MOBILE ? 1.2 : Math.min(2, window.devicePixelRatio))
-    world.width(window.innerWidth).height(window.innerHeight)
-    const onResize = () => {
+    let dead = false
+    const timers = []
+
+    const loadTex = (url, fallbackUrl) => new Promise((res) => {
+      const loader = new THREE.TextureLoader()
+      loader.load(url, (tex) => res(tex), undefined, () => {
+        if (fallbackUrl) loader.load(fallbackUrl, (t2) => res(t2), undefined, () => res(null))
+        else res(null)
+      })
+    })
+
+    Promise.all([
+      loadTex(TEX.day, TEX.dayFallback),
+      loadTex(TEX.night),
+      loadTex(TEX.water),
+      loadTex(TEX.clouds),
+    ]).then(([dayTex, nightTex, waterTex, cloudTex]) => {
+      if (dead) return
+
+      const world = Globe({ animateIn: false })(containerRef.current)
+        .backgroundColor('rgba(0,0,0,0)')
+        .showAtmosphere(false)
+        .polygonsData(worldEngine.features)
+        .polygonCapColor(polygonCapColor)
+        .polygonSideColor(() => 'rgba(120, 220, 255, 0.05)')
+        .polygonStrokeColor(polygonStrokeColor)
+        .polygonAltitude(polygonAltitude)
+        .polygonsTransitionDuration(280)
+        .polygonLabel(() => '')
+
+      world.controls().enableDamping = true
+      world.controls().dampingFactor = 0.08
+      world.controls().enablePan = false
+      world.controls().minDistance = 150
+      world.controls().maxDistance = 800
+      world.controls().autoRotate = false
+      world.controls().autoRotateSpeed = 0.35
+      const PR = MOBILE ? 1.2 : Math.min(2, window.devicePixelRatio)
+      world.renderer().setPixelRatio(PR)
       world.width(window.innerWidth).height(window.innerHeight)
-    }
-    window.addEventListener('resize', onResize)
+      const onResize = () => {
+        world.width(window.innerWidth).height(window.innerHeight)
+      }
+      window.addEventListener('resize', onResize)
 
-    world.pointOfView({ lat: 24, lng: 105, altitude: MOBILE ? 3.4 : 2.4 }, 0)
+      // 星空相机远平面需覆盖星空壳
+      const cam = world.camera()
+      cam.far = 8000
+      cam.near = 10
+      cam.updateProjectionMatrix()
 
-    // 交互
-    world.onPolygonClick((f) => {
-      const iso3 = f.__iso3
-      // 注意: 此处不可调用 ensureCtx(), 否则任何点击都会解锁 AudioContext,
-      // 导致静音模式下首次点击后音效突然涌出
-      setSelectedIso((prev) => (prev === iso3 ? null : iso3))
-    })
-    world.onGlobeClick(() => setSelectedIso(null))
-
-    globeRef.current = world
-    return () => {
-      window.removeEventListener('resize', onResize)
-      world._destructor?.()
-      globeRef.current = null
-    }
-  }, [geoLoaded, hexColor, MOBILE])
-
-  // 脉冲层: 用 three.js Points 高性能渲染
-  useEffect(() => {
-    if (!geoLoaded) return
-    const world = globeRef.current
-    if (!world) return
-    const scene = world.scene()
-    const MAX = 260
-    const positions = new Float32Array(MAX * 3)
-    const colors = new Float32Array(MAX * 3)
-    const life = new Float32Array(MAX) // 0..1
-    const geom = new THREE.BufferGeometry()
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    const tex = (() => {
-      const c = document.createElement('canvas')
-      c.width = c.height = 64
-      const g = c.getContext('2d')
-      const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32)
-      grad.addColorStop(0, 'rgba(255,255,255,1)')
-      grad.addColorStop(0.35, 'rgba(255,255,255,0.7)')
-      grad.addColorStop(1, 'rgba(255,255,255,0)')
-      g.fillStyle = grad
-      g.fillRect(0, 0, 64, 64)
-      return new THREE.CanvasTexture(c)
-    })()
-    const mat = new THREE.PointsMaterial({
-      size: 9, map: tex, transparent: true, depthWrite: false,
-      blending: THREE.NormalBlending, vertexColors: true, sizeAttenuation: true,
-    })
-    const points = new THREE.Points(geom, mat)
-    points.frustumCulled = false
-    points.renderOrder = 999
-    scene.add(points)
-    // 调试句柄
-    window.__PULSE_DEBUG__ = {
-      activeCount: () => { let n = 0; for (let i = 0; i < MAX; i++) if (life[i] > 0) n += 1; return n },
-      spawned: () => head,
-      pointsObj: points,
-    }
-
-    const BIRTH = new THREE.Color(0x2affb4)
-    const DEATH = new THREE.Color(0xff5470)
-    const baseColors = new Float32Array(MAX * 3)
-    let head = 0
-    const spawn = ({ type, lat, lng }) => {
-      const i = head % MAX
-      head += 1
-      // 与 three-globe polar2Cartesian 完全一致的坐标系
-      const R = 101.8 // 高于国家多边形表面(100.8), 避免遮挡
-      const phi = (90 - lat) * (Math.PI / 180)
-      const theta = (90 - lng) * (Math.PI / 180)
-      positions[i * 3] = R * Math.sin(phi) * Math.cos(theta)
-      positions[i * 3 + 1] = R * Math.cos(phi)
-      positions[i * 3 + 2] = R * Math.sin(phi) * Math.sin(theta)
-      const col = type === 'birth' ? BIRTH : DEATH
-      baseColors[i * 3] = col.r
-      baseColors[i * 3 + 1] = col.g
-      baseColors[i * 3 + 2] = col.b
-      colors[i * 3] = col.r
-      colors[i * 3 + 1] = col.g
-      colors[i * 3 + 2] = col.b
-      life[i] = 1
-    }
-    const unPulse = worldEngine.onPulse((p) => {
-      spawn(p)
-      if (p.type === 'birth') playBirth(0.16)
-      else playDeath(0.13)
-    })
-    let raf = 0
-    const tick = () => {
-      let dirty = false
-      for (let i = 0; i < MAX; i++) {
-        if (life[i] > 0) {
-          life[i] = Math.max(0, life[i] - 0.016)
-          const s = life[i]
-          const k = s * s * (3 - 2 * s) // smoothstep 淡出
-          colors[i * 3] = baseColors[i * 3] * k
-          colors[i * 3 + 1] = baseColors[i * 3 + 1] * k
-          colors[i * 3 + 2] = baseColors[i * 3 + 2] * k
-          if (life[i] <= 0) positions[i * 3 + 1] = -9999
-          dirty = true
+      const maxAniso = world.renderer().capabilities.getMaxAnisotropy()
+      for (const tex of [dayTex, waterTex, cloudTex]) {
+        if (tex) {
+          tex.anisotropy = maxAniso
+          tex.needsUpdate = true
         }
       }
-      if (dirty) {
-        geom.attributes.position.needsUpdate = true
-        geom.attributes.color.needsUpdate = true
+
+      // 地球: 实时昼夜光照
+      const globeMat = createGlobeMaterial({ day: dayTex, night: nightTex, water: waterTex })
+      world.globeMaterial(globeMat)
+
+      const scene = world.scene()
+
+      // 外层大气辉光
+      const atmo = createAtmosphere(GLOBE_R * 1.18)
+      scene.add(atmo.mesh)
+
+      // 云层
+      const fx = { globeMat, atmo }
+      if (cloudTex) {
+        const clouds = createClouds(cloudTex, GLOBE_R * 1.006)
+        scene.add(clouds.mesh)
+        fx.clouds = clouds
       }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      unPulse()
-      cancelAnimationFrame(raf)
-      scene.remove(points)
-      geom.dispose()
-      mat.dispose()
-      tex.dispose()
-    }
-  }, [geoLoaded])
+
+      // 程序化星空
+      const stars = createStarfield({ count: MOBILE ? 3200 : 6500, radius: 2600, pixelRatio: PR })
+      scene.add(stars.points)
+      fx.stars = stars
+
+      // ——— 脉冲: 闪光(加法混合) + 涟漪冲击波 ———
+      const MAX = 260
+      const positions = new Float32Array(MAX * 3)
+      const colors = new Float32Array(MAX * 3)
+      const life = new Float32Array(MAX)
+      const baseColors = new Float32Array(MAX * 3)
+      const flashGeom = new THREE.BufferGeometry()
+      flashGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      flashGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      const dotTex = (() => {
+        const c = document.createElement('canvas')
+        c.width = c.height = 64
+        const g = c.getContext('2d')
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32)
+        grad.addColorStop(0, 'rgba(255,255,255,1)')
+        grad.addColorStop(0.35, 'rgba(255,255,255,0.7)')
+        grad.addColorStop(1, 'rgba(255,255,255,0)')
+        g.fillStyle = grad
+        g.fillRect(0, 0, 64, 64)
+        return new THREE.CanvasTexture(c)
+      })()
+      const flashMat = new THREE.PointsMaterial({
+        size: 8.5, map: dotTex, transparent: true, depthWrite: false,
+        blending: THREE.AdditiveBlending, vertexColors: true, sizeAttenuation: true,
+      })
+      const flashPoints = new THREE.Points(flashGeom, flashMat)
+      flashPoints.frustumCulled = false
+      flashPoints.renderOrder = 999
+      scene.add(flashPoints)
+
+      const rings = createRings({ max: MAX, pixelRatio: PR })
+      scene.add(rings.points)
+      fx.rings = rings
+      fx.flash = { geom: flashGeom, mat: flashMat, positions, colors, baseColors, life, tex: dotTex }
+      fx.head = 0
+      fx.ringHead = 0
+
+      const setPulsePosition = (arr, i, lat, lng) => {
+        const phi = (90 - lat) * (Math.PI / 180)
+        const theta = (90 - lng) * (Math.PI / 180)
+        arr[i * 3] = PULSE_R * Math.sin(phi) * Math.cos(theta)
+        arr[i * 3 + 1] = PULSE_R * Math.cos(phi)
+        arr[i * 3 + 2] = PULSE_R * Math.sin(phi) * Math.sin(theta)
+      }
+      const BIRTH = new THREE.Color(0x2affb4)
+      const DEATH = new THREE.Color(0xff5470)
+
+      const spawn = ({ type, lat, lng }) => {
+        const i = fx.head % MAX
+        fx.head += 1
+        setPulsePosition(positions, i, lat, lng)
+        const col = type === 'birth' ? BIRTH : DEATH
+        baseColors[i * 3] = col.r
+        baseColors[i * 3 + 1] = col.g
+        baseColors[i * 3 + 2] = col.b
+        colors[i * 3] = col.r
+        colors[i * 3 + 1] = col.g
+        colors[i * 3 + 2] = col.b
+        life[i] = 1
+        // 涟漪
+        const j = fx.ringHead % MAX
+        fx.ringHead += 1
+        setPulsePosition(rings.positions, j, lat, lng)
+        rings.colors[j * 3] = col.r
+        rings.colors[j * 3 + 1] = col.g
+        rings.colors[j * 3 + 2] = col.b
+        rings.t0[j] = performance.now() / 1000
+        rings.geom.attributes.aT0.needsUpdate = true
+        rings.geom.attributes.aColor.needsUpdate = true
+        rings.geom.attributes.position.needsUpdate = true
+      }
+
+      const unPulse = worldEngine.onPulse((p) => {
+        spawn(p)
+        if (p.type === 'birth') playBirth(0.16)
+        else playDeath(0.13)
+      })
+
+      // 调试句柄
+      window.__PULSE_DEBUG__ = {
+        activeCount: () => { let n = 0; for (let i = 0; i < MAX; i++) if (life[i] > 0) n += 1; return n },
+        spawned: () => fx.head,
+        pointsObj: flashPoints,
+      }
+
+      // ——— 主渲染循环: 实时太阳 / 云漂移 / 星闪烁 / 脉冲衰减 ———
+      let raf = 0
+      let last = performance.now()
+      const loop = () => {
+        const now = performance.now()
+        const dt = Math.min(0.05, (now - last) / 1000)
+        last = now
+        const time = now / 1000
+
+        // 太阳方向: 由真实 UTC 时间推算, 晨昏线与真实世界同步
+        const { lat: slat, lng: slng } = sunLatLon()
+        const sun = latLngToVec3(slat, slng, 1)
+        globeMat.uniforms.uSunDir.value.copy(sun)
+        atmo.mat.uniforms.uSunDir.value.copy(sun)
+        if (fx.clouds) {
+          fx.clouds.mat.uniforms.uSunDir.value.copy(sun)
+          fx.clouds.mesh.rotation.y += dt * 0.0045
+        }
+        stars.mat.uniforms.uTime.value = time
+        rings.mat.uniforms.uTime.value = time
+
+        // 闪光衰减
+        let dirty = false
+        for (let i = 0; i < MAX; i++) {
+          if (life[i] > 0) {
+            life[i] = Math.max(0, life[i] - dt * 0.95)
+            const k = life[i] * life[i] * (3 - 2 * life[i]) // smoothstep 淡出
+            colors[i * 3] = baseColors[i * 3] * k
+            colors[i * 3 + 1] = baseColors[i * 3 + 1] * k
+            colors[i * 3 + 2] = baseColors[i * 3 + 2] * k
+            if (life[i] <= 0) positions[i * 3 + 1] = -9999
+            dirty = true
+          }
+        }
+        if (dirty) {
+          flashGeom.attributes.position.needsUpdate = true
+          flashGeom.attributes.color.needsUpdate = true
+        }
+        raf = requestAnimationFrame(loop)
+      }
+      raf = requestAnimationFrame(loop)
+
+      // ——— 交互 ———
+      world.onPolygonClick((f) => {
+        // 注意: 此处不可调用 ensureCtx(), 否则任何点击都会解锁 AudioContext,
+        // 导致静音模式下首次点击后音效突然涌出
+        setSelectedIso((prev) => (prev === f.__iso3 ? null : f.__iso3))
+      })
+      world.onGlobeClick(() => setSelectedIso(null))
+      world.onPolygonHover((f) => {
+        const iso = f?.__iso3 ?? null
+        if (iso === hoverIsoRef.current) return
+        hoverIsoRef.current = iso
+        refreshPolygons()
+      })
+
+      // ——— 开场: 相机从深空飞入, 标题渐显 ———
+      world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
+      timers.push(setTimeout(() => {
+        world.pointOfView({ lat: 24, lng: 105, altitude: MOBILE ? 3.4 : 2.35 }, 3400)
+      }, 80))
+      timers.push(setTimeout(() => setBooted(true), 1500))
+      timers.push(setTimeout(() => {
+        introDoneRef.current = true
+        setIntroGone(true)
+        world.controls().autoRotate = !selectedIsoRef.current
+      }, 5000))
+
+      globeRef.current = world
+      fxRef.current = fx
+      window.__GLOBE__ = world // 调试句柄
+      setReady(true)
+
+      return () => {
+        dead = true
+        timers.forEach(clearTimeout)
+        window.removeEventListener('resize', onResize)
+        unPulse()
+        cancelAnimationFrame(raf)
+        scene.remove(atmo.mesh)
+        atmo.mesh.geometry.dispose()
+        atmo.mat.dispose()
+        if (fx.clouds) {
+          scene.remove(fx.clouds.mesh)
+          fx.clouds.mesh.geometry.dispose()
+          fx.clouds.mat.dispose()
+        }
+        scene.remove(stars.points)
+        stars.points.geometry.dispose()
+        stars.mat.dispose()
+        scene.remove(flashPoints)
+        flashGeom.dispose()
+        flashMat.dispose()
+        dotTex.dispose()
+        scene.remove(rings.points)
+        rings.geom.dispose()
+        rings.mat.dispose()
+        rings.mat.uniforms.uMap.value.dispose()
+        world._destructor?.()
+        globeRef.current = null
+        fxRef.current = null
+      }
+    })
+
+    return () => { dead = true }
+  }, [geoLoaded, MOBILE, polygonCapColor, polygonStrokeColor, polygonAltitude, refreshPolygons])
+
+  // 选中国家: 高亮 + 相机飞往
+  useEffect(() => {
+    const w = globeRef.current
+    if (!w) return
+    refreshPolygons()
+    const c = w.controls()
+    if (c) c.autoRotate = introDoneRef.current && !selectedIso
+    if (!selectedIso) return
+    const f = worldEngine.featureByIso.get(selectedIso)
+    if (!f) return
+    const cur = w.pointOfView()
+    w.pointOfView({
+      lat: f.__labelLat,
+      lng: f.__labelLng,
+      altitude: Math.min(cur.altitude || 2.4, 1.75),
+    }, 950)
+  }, [selectedIso, refreshPolygons])
 
   // 声音开关(仅在用户主动开启声音时解锁 AudioContext)
   const toggleSound = useCallback(() => {
@@ -461,10 +655,19 @@ export default function App() {
   )
 
   return (
-    <div className="app-root">
-      <div className="bg-grid" aria-hidden="true" />
+    <div className={`app-root ${ready ? 'ready' : ''} ${booted ? 'booted' : ''}`}>
+      <div className="bg-nebula" aria-hidden="true" />
       <div ref={containerRef} className="globe-container" />
-      {!geoLoaded && <div className="loading-mask">{t.loading}</div>}
+      <div className="bg-vignette" aria-hidden="true" />
+      <div className="bg-grain" aria-hidden="true" />
+
+      {!ready && <div className="loading-mask"><span className="loading-dot" />{t.loading}</div>}
+
+      <div className={`intro-title ${introGone ? 'gone' : ''}`} aria-hidden="true">
+        <div className="intro-rule" />
+        <h1>{t.title}</h1>
+        <p>{t.subtitle}</p>
+      </div>
 
       <NewsTicker lang={lang} />
       <div className="slogan">{t.subtitle}</div>
