@@ -36,6 +36,22 @@ const fmt = (n, lang) => {
   }
 }
 
+// 紧凑数字: 只保留模型可信的精度(万/亿位), 避免伪精度也更可读
+const fmtCompact = (n, lang) => {
+  const abs = Math.abs(n)
+  const sign = n < 0 ? '-' : ''
+  if (lang === 'en') {
+    if (abs >= 1e9) return sign + (abs / 1e9).toFixed(2) + 'B'
+    if (abs >= 1e6) return sign + (abs / 1e6).toFixed(1) + 'M'
+    if (abs >= 1e3) return sign + Math.round(abs / 1e3) + 'K'
+    return sign + Math.round(abs)
+  }
+  if (abs >= 1e8) return sign + (abs / 1e8).toFixed(1) + (lang === 'ja' ? '億' : '亿')
+  if (abs >= 1e6) return sign + Math.round(abs / 1e4).toLocaleString('en-US') + '万'
+  if (abs >= 1e4) return sign + (abs / 1e4).toFixed(1) + '万'
+  return sign + Math.round(abs)
+}
+
 const clockText = (lang) => {
   const d = new Date()
   const p2 = (x) => String(x).padStart(2, '0')
@@ -77,9 +93,10 @@ function NewsTicker({ lang }) {
 }
 
 // ————————————————————————————— 数字翻牌 —————————————————————————————
-function RollingNumber({ value, className }) {
+function RollingNumber({ value, className, format }) {
   const ref = useRef(null)
   const prevRef = useRef(value)
+  const fmtFn = useMemo(() => format || ((v) => v.toLocaleString('en-US')), [format])
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -87,98 +104,148 @@ function RollingNumber({ value, className }) {
     prevRef.current = value
     const obj = { v: from }
     const diff = value - from
-    if (diff <= 0) { el.textContent = value.toLocaleString('en-US'); return }
+    if (diff <= 0) { el.textContent = fmtFn(value); return }
     const tw = gsap.to(obj, {
       v: value,
       duration: 0.24,
       ease: 'power1.out',
-      onUpdate: () => { el.textContent = Math.round(obj.v).toLocaleString('en-US') },
+      onUpdate: () => { el.textContent = fmtFn(Math.round(obj.v)) },
     })
     return () => tw.kill()
-  }, [value])
-  return <span ref={ref} className={className}>{value.toLocaleString('en-US')}</span>
+  }, [value, fmtFn])
+  return <span ref={ref} className={className}>{fmtFn(value)}</span>
 }
 
 // ————————————————————————————— 左侧主面板 —————————————————————————————
-function StatsPanel({ snap, lang }) {
+function StatsPanel({ snap, lang, onHoverCountry }) {
   const t = T[lang]
+  const [sessionStart] = useState(() => Date.now())
+  const [showAllCauses, setShowAllCauses] = useState(false)
+  const [showMethod, setShowMethod] = useState(false)
   const causes = useMemo(() => {
     const yearSec = snap.yearSec || 1
     return DEATH_CAUSES.map((c) => ({ ...c, n: Math.floor((c.annual / 31557600) * yearSec) }))
       .sort((a, b) => b.n - a.n)
   }, [snap.yearSec])
-  const cig = Math.floor((REFERENCE_FACTS.cigarettesPerYear / 31557600) * (snap.daySec || 0))
-  const drug = Math.floor((REFERENCE_FACTS.illegalDrugsUSDPerYear / 31557600) * (snap.daySec || 0))
+  const maxCause = causes[0]?.n || 1
+  const visibleCauses = showAllCauses ? causes : causes.slice(0, 6)
+  const cig = (REFERENCE_FACTS.cigarettesPerYear / 31557600) * (snap.daySec || 0)
+  const drug = (REFERENCE_FACTS.illegalDrugsUSDPerYear / 31557600) * (snap.daySec || 0)
   const topBirths = useMemo(() => worldEngine.topByBirths(5), [snap.birthsToday])
+  // 「自你打开本页」: 纯前端会话计数, 精确值(由真实速率积分而来)
+  const sessionSec = Math.max(0, (snap.at - sessionStart) / 1000)
+  const sessB = Math.floor(sessionSec * snap.birthsPerSec)
+  const sessD = Math.floor(sessionSec * snap.deathsPerSec)
+  const compact = useCallback((v) => fmtCompact(v, lang), [lang])
   return (
     <div className="panel stats-panel">
       <div className="panel-head">
         <span className="live-dot" />
-        <span className="live-label">{t.live}</span>
+        <span className="live-label">{t.projection}</span>
         <span className="clock">{clockText(lang)}</span>
       </div>
       <div className="big-stat">
         <div className="big-label">{t.worldPop}</div>
         <RollingNumber className="big-value" value={snap.worldPopulation} />
+        <div className="rate-line">
+          {t.ratePrefix} <b className="nb">{snap.birthsPerSec.toFixed(1)}</b>{t.birthWord}
+          {' · '}<b className="nd">{snap.deathsPerSec.toFixed(1)}</b>{t.deathWord}
+          {' · '}<b className="nn">+{snap.netPerSec.toFixed(1)}</b>{t.netWord}
+        </div>
       </div>
+
+      <div className="session-box">
+        <div className="session-label">{t.sinceOpen}</div>
+        <div className="session-grid">
+          <div className="session-item">
+            <span className="session-num birth"><RollingNumber value={sessB} /></span>
+            <span className="session-cap">{t.birthsLabel}</span>
+          </div>
+          <div className="session-item">
+            <span className="session-num death"><RollingNumber value={sessD} /></span>
+            <span className="session-cap">{t.deathsLabel}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="stat-grid">
         <div className="stat birth">
-          <span className="stat-label">{t.birthsYear}</span>
-          <RollingNumber className="stat-value" value={snap.birthsYear} />
-        </div>
-        <div className="stat death">
-          <span className="stat-label">{t.deathsYear}</span>
-          <RollingNumber className="stat-value" value={snap.deathsYear} />
-        </div>
-        <div className="stat birth">
           <span className="stat-label">{t.birthsToday}</span>
-          <RollingNumber className="stat-value" value={snap.birthsToday} />
+          <RollingNumber className="stat-value" value={snap.birthsToday} format={compact} />
         </div>
         <div className="stat death">
           <span className="stat-label">{t.deathsToday}</span>
-          <RollingNumber className="stat-value" value={snap.deathsToday} />
+          <RollingNumber className="stat-value" value={snap.deathsToday} format={compact} />
         </div>
-        <div className="stat net">
-          <span className="stat-label">{t.netGrowth}</span>
-          <RollingNumber className="stat-value" value={snap.worldPopulation - worldEngine.worldPopulation} />
+        <div className="stat birth">
+          <span className="stat-label">{t.birthsYear}</span>
+          <RollingNumber className="stat-value" value={snap.birthsYear} format={compact} />
         </div>
-        <div className="stat rate">
-          <span className="stat-label">{t.birthsPerSec}</span>
-          <span className="stat-value">{snap.birthsPerSec.toFixed(1)}</span>
+        <div className="stat death">
+          <span className="stat-label">{t.deathsYear}</span>
+          <RollingNumber className="stat-value" value={snap.deathsYear} format={compact} />
         </div>
       </div>
+
       <div className="divider" />
+
       <div className="section-title">{t.health}</div>
       <div className="cause-list">
-        {causes.map((c) => (
+        {visibleCauses.map((c) => (
           <div className="cause-row" key={c.key}>
             <span className="cause-name">{lang === 'en' ? c.en : lang === 'ja' ? c.ja : c.zh}</span>
-            <span className="cause-bar"><i style={{ width: `${Math.min(100, (c.n / causes[0].n) * 100)}%` }} /></span>
-            <span className="cause-num">-{fmt(c.n, lang)}</span>
+            <span className="cause-num">-{compact(c.n)}</span>
+            <span className="cause-bar"><i style={{ width: `${(c.n / maxCause) * 100}%` }} /></span>
           </div>
         ))}
       </div>
-      <div className="divider" />
-      <div className="cause-row">
-        <span className="cause-name">{t.cigarettes}</span>
-        <span className="cause-num">{fmt(cig, lang)}</span>
-      </div>
-      <div className="cause-row">
-        <span className="cause-name">{t.drugMoney}</span>
-        <span className="cause-num">${fmt(drug / 1e6, lang)}M</span>
-      </div>
-      <div className="divider" />
+      <button className="expand-toggle" onClick={() => setShowAllCauses((v) => !v)}>
+        {showAllCauses ? t.showLess : t.showAll}
+      </button>
+
       <div className="section-title">{t.topBirths}</div>
       <div className="top-list">
         {topBirths.map((c, i) => (
-          <div className="top-row" key={c.iso3}>
+          <div className="top-row" key={c.iso3}
+            onMouseEnter={() => onHoverCountry(c.iso3)}
+            onMouseLeave={() => onHoverCountry(null)}>
             <span className="top-rank">{i + 1}</span>
             <span className="top-name">{worldEngine.countryName(c.iso3, lang)}</span>
-            <span className="top-num">+{fmt(c.birthsToday, lang)}</span>
+            <span className="top-num">+{compact(c.birthsToday)}</span>
           </div>
         ))}
       </div>
-      <div className="data-note">{t.dataNote}</div>
+
+      <div className="fun-rows">
+        <div className="fun-row">
+          <span className="fun-name">{t.cigarettes}</span>
+          <span className="fun-num">{compact(cig)}</span>
+        </div>
+        <div className="fun-row">
+          <span className="fun-name">{t.drugMoney}</span>
+          <span className="fun-num">${compact(drug)}</span>
+        </div>
+      </div>
+
+      <button className="method-toggle" onClick={() => setShowMethod((v) => !v)}>
+        {t.methodTitle} {showMethod ? '▴' : '▾'}
+      </button>
+      {showMethod && (
+        <div className="method-box">
+          <p>{t.methodBody}</p>
+          <div className="trust-title">{t.trustRealTitle}</div>
+          <ul>{t.trustReal.map((s) => <li key={s}>{s}</li>)}</ul>
+          <div className="trust-title">{t.trustSimTitle}</div>
+          <ul>{t.trustSim.map((s) => <li key={s}>{s}</li>)}</ul>
+          <div className="trust-title">{t.sourcesLabel}</div>
+          <div className="src-links">
+            <a href="https://data.worldbank.org/" target="_blank" rel="noreferrer">World Bank</a>
+            <a href="https://www.who.int/data/global-health-estimates" target="_blank" rel="noreferrer">WHO</a>
+            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noreferrer">Natural Earth</a>
+            <a href="https://visibleearth.nasa.gov/" target="_blank" rel="noreferrer">NASA</a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -330,6 +397,12 @@ export default function App() {
     w.polygonStrokeColor(polygonStrokeColor)
     w.polygonAltitude(polygonAltitude)
   }, [polygonCapColor, polygonStrokeColor, polygonAltitude])
+
+  // 面板排行榜悬停 -> 地球上高亮对应国家
+  const highlightCountry = useCallback((iso) => {
+    hoverIsoRef.current = iso || null
+    refreshPolygons()
+  }, [refreshPolygons])
 
   // ———————— 初始化地球 + 全部视觉特效 + 开场动画 ————————
   useEffect(() => {
@@ -672,7 +745,7 @@ export default function App() {
       <NewsTicker lang={lang} />
       <div className="slogan">{t.subtitle}</div>
 
-      <StatsPanel snap={snap} lang={lang} />
+      <StatsPanel snap={snap} lang={lang} onHoverCountry={highlightCountry} />
 
       {detail && <CountryCard detail={detail} lang={lang} onClose={() => setSelectedIso(null)} />}
 

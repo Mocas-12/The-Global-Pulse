@@ -295,6 +295,53 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* 心跳行: 主数字下方的全球速率 */
+.rate-line {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.rate-line b { font-weight: 600; }
+.rate-line .nb { color: var(--birth); }
+.rate-line .nd { color: var(--death); }
+.rate-line .nn { color: #7dd3fc; }
+
+/* 「自你打开本页」会话计数: 个性化锚点 */
+.session-box {
+  margin: 2px 0 12px;
+  padding: 8px 11px 7px;
+  border: 1px solid rgba(42, 255, 180, 0.12);
+  background: rgba(42, 255, 180, 0.045);
+  border-radius: 10px;
+}
+.session-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(42, 255, 180, 0.75);
+  margin-bottom: 4px;
+}
+.session-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
+}
+.session-item { display: flex; align-items: baseline; gap: 6px; }
+.session-num {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #f4faff;
+}
+.session-num.birth { color: var(--birth); text-shadow: 0 0 10px rgba(42, 255, 180, 0.3); }
+.session-num.death { color: var(--death); text-shadow: 0 0 10px rgba(255, 84, 112, 0.3); }
+.session-cap {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -317,12 +364,10 @@ body {
 }
 .stat.birth .stat-value { color: var(--birth); text-shadow: 0 0 12px rgba(42, 255, 180, 0.35); }
 .stat.death .stat-value { color: var(--death); text-shadow: 0 0 12px rgba(255, 84, 112, 0.35); }
-.stat.net .stat-value { color: #7dd3fc; }
-.stat.rate .stat-value { color: var(--cyan-soft); }
 
 .divider {
   height: 1px;
-  margin: 12px 0 10px;
+  margin: 13px 0 2px;
   background: linear-gradient(90deg, transparent, rgba(120, 189, 248, 0.22), transparent);
 }
 
@@ -330,16 +375,19 @@ body {
   font-size: 11px;
   letter-spacing: 0.2em;
   color: var(--cyan-soft);
-  margin-bottom: 8px;
+  margin: 12px 0 8px;
 }
 
-.cause-list { display: flex; flex-direction: column; gap: 5px; }
+/* 死因列表: 比例条化作行底下划线 */
+.cause-list { display: flex; flex-direction: column; gap: 6px; }
 .cause-row {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   font-size: 11px;
+  padding-bottom: 4px;
 }
 .cause-name {
   color: var(--text-dim);
@@ -348,22 +396,59 @@ body {
   text-overflow: ellipsis;
 }
 .cause-num {
-  color: rgba(255, 84, 112, 0.9);
+  color: rgba(255, 128, 148, 0.85);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .cause-bar {
-  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 84, 112, 0.08);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.cause-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  background: linear-gradient(90deg, rgba(255, 84, 112, 0.85), rgba(255, 84, 112, 0.2));
+  border-radius: 1px;
+  transition: width 0.4s ease;
 }
 
-.top-list { display: flex; flex-direction: column; gap: 4px; }
+.expand-toggle {
+  background: none;
+  border: none;
+  color: rgba(148, 197, 233, 0.6);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 2px 0 0;
+  transition: color 0.15s;
+}
+.expand-toggle:hover { color: var(--cyan-soft); }
+
+.top-list { display: flex; flex-direction: column; gap: 2px; }
 .top-row {
   display: grid;
   grid-template-columns: 18px 1fr auto;
   gap: 8px;
   align-items: center;
   font-size: 12px;
+  padding: 2px 5px;
+  margin: 0 -5px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  cursor: default;
 }
+.top-row:hover { background: rgba(120, 180, 255, 0.09); }
 .top-rank {
   color: rgba(56, 189, 248, 0.6);
   font-size: 10px;
@@ -378,6 +463,56 @@ body {
   color: var(--birth);
   font-variant-numeric: tabular-nums;
 }
+
+/* 趣闻脚注 + 数据方法 */
+.fun-rows { margin-top: 13px; display: flex; flex-direction: column; gap: 3px; }
+.fun-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: rgba(148, 197, 233, 0.5);
+}
+.fun-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fun-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.method-toggle {
+  background: none;
+  border: none;
+  color: rgba(148, 197, 233, 0.55);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 6px 0 0;
+  text-align: left;
+  transition: color 0.15s;
+}
+.method-toggle:hover { color: var(--cyan-soft); }
+.method-box {
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(6, 12, 26, 0.5);
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+.method-box p { margin: 0 0 7px; }
+.method-box .trust-title {
+  color: var(--cyan-soft);
+  letter-spacing: 0.12em;
+  margin: 7px 0 2px;
+  font-size: 9.5px;
+}
+.method-box ul { margin: 0; padding-left: 15px; }
+.method-box a { color: rgba(34, 211, 238, 0.75); text-decoration: none; margin-right: 10px; }
+.method-box a:hover { color: var(--cyan); text-shadow: 0 0 8px rgba(34, 211, 238, 0.4); }
 
 .data-note {
   margin-top: 10px;
