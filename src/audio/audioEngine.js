@@ -87,11 +87,13 @@ export function playIntro() {
 }
 
 // 环境音景: 只有脉搏心跳(约50bpm lub-dub), 低频滑落+噪声声体的有机质感, 混响收尾。
-export function startAmbient(fade = 1.2) {
+// mobileBoost: 手机扬声器对低频不敏感, 提高增益并补中频声体。
+export function startAmbient(fade = 1.2, mobileBoost = false) {
   if (ambientRunning) return
   const c = ensureCtx()
   if (!c) return
   ambientRunning = true
+  const boost = mobileBoost ? 1.6 : 1
 
   const amb = { nodes: [], timers: [] }
   ambient = amb
@@ -135,21 +137,21 @@ export function startAmbient(fade = 1.2) {
     o.frequency.exponentialRampToValueAtTime(base, at + 0.22)
     const g = c.createGain()
     g.gain.setValueAtTime(0, at)
-    g.gain.linearRampToValueAtTime(vol, at + 0.028)
+    g.gain.linearRampToValueAtTime(vol * boost, at + 0.028)
     g.gain.exponentialRampToValueAtTime(0.0001, at + 0.38)
     o.connect(g)
     g.connect(heartOut)
-    // 中频声体: 保证笔记本音箱也能听清"咚"
+    // 声体: 100~520Hz 带通噪声, 手机端更宽以补中频
     const n = c.createBufferSource()
     n.buffer = makeNoiseBuffer(c, 0.3)
     const nLp = c.createBiquadFilter()
     nLp.type = 'lowpass'
-    nLp.frequency.value = 320
+    nLp.frequency.value = mobileBoost ? 520 : 320
     const nHp = c.createBiquadFilter()
     nHp.type = 'highpass'
     nHp.frequency.value = 100
     const ng = c.createGain()
-    ng.gain.setValueAtTime(vol * 0.7, at)
+    ng.gain.setValueAtTime(vol * 0.7 * boost, at)
     ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.12)
     n.connect(nLp)
     nLp.connect(nHp)
@@ -174,7 +176,7 @@ export function startAmbient(fade = 1.2) {
 
   const t = c.currentTime
   masterAmb.gain.setValueAtTime(0, t)
-  masterAmb.gain.linearRampToValueAtTime(0.75, t + Math.max(0.5, fade))
+  masterAmb.gain.linearRampToValueAtTime(mobileBoost ? 0.9 : 0.75, t + Math.max(0.5, fade))
 
   amb.nodes.push(masterAmb, convolver, reverbGain, heartOut, heartLp, heartSend)
 }

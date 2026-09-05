@@ -318,7 +318,18 @@ export default function App() {
   const selectedIsoRef = useRef(null)
   const introDoneRef = useRef(false)
   const introAudioRef = useRef(false) // 开场飞入期间为 true, 首次解锁音频时据此播放接近音
-  const [lang, setLang] = useState(() => (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en')
+  const [lang, setLang] = useState(() => {
+    // 默认中文; 手动切换后记忆(localStorage)
+    try {
+      const saved = localStorage.getItem('tgp-lang')
+      if (saved === 'zh' || saved === 'en' || saved === 'ja') return saved
+    } catch { /* noop */ }
+    return 'zh'
+  })
+  const changeLang = useCallback((l) => {
+    setLang(l)
+    try { localStorage.setItem('tgp-lang', l) } catch { /* noop */ }
+  }, [])
   const t = T[lang]
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
   const [selectedIso, setSelectedIso] = useState(null)
@@ -342,7 +353,7 @@ export default function App() {
   }, [])
 
   // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
-  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接环境音。
+  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接心跳背景音。
   const enableAudio = useCallback(() => {
     ensureCtx()
     setMuted(false)
@@ -350,11 +361,11 @@ export default function App() {
     setAudioReady(true)
     if (introAudioRef.current) {
       const d = playIntro() || 3
-      setTimeout(() => { if (!isMuted()) startAmbient() }, d * 720)
+      setTimeout(() => { if (!isMuted()) startAmbient(1.2, MOBILE) }, d * 720)
     } else {
-      startAmbient()
+      startAmbient(1.2, MOBILE)
     }
-  }, [])
+  }, [MOBILE])
 
   useEffect(() => {
     const onGesture = () => {
@@ -794,7 +805,7 @@ export default function App() {
       <div className="top-right">
         <div className="lang-switch">
           {LANGS.map((l) => (
-            <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
+            <button key={l} className={lang === l ? 'on' : ''} onClick={() => changeLang(l)}>
               {l === 'zh' ? '中' : l === 'en' ? 'EN' : '日'}
             </button>
           ))}

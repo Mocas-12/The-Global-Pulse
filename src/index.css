@@ -709,7 +709,7 @@ body {
     right: 10px;
     left: 10px;
     width: auto;
-    top: 46px;
+    top: 96px; /* 位于语言切换/声音按钮之下, 避免遮挡 */
     transform: none;
   }
   @keyframes card-in {
