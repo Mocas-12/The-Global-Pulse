@@ -86,9 +86,8 @@ export function playIntro() {
   return dur
 }
 
-// 环境音景: 脉搏心跳为主角(约50bpm lub-dub) + 极轻的和声垫作底。
-// 心跳音色: 低频滑落 + 噪声声体, 软攻击, 有肉感而非电子哔声。
-export function startAmbient(fade = 1.5) {
+// 环境音景: 只有脉搏心跳(约50bpm lub-dub), 低频滑落+噪声声体的有机质感, 混响收尾。
+export function startAmbient(fade = 1.2) {
   if (ambientRunning) return
   const c = ensureCtx()
   if (!c) return
@@ -101,7 +100,7 @@ export function startAmbient(fade = 1.5) {
   masterAmb.gain.value = 0
   masterAmb.connect(master)
 
-  // 短混响(1.4s)
+  // 轻混响收尾
   const convolver = c.createConvolver()
   const len = Math.floor(c.sampleRate * 1.4)
   const ir = c.createBuffer(2, len, c.sampleRate)
@@ -111,74 +110,11 @@ export function startAmbient(fade = 1.5) {
   }
   convolver.buffer = ir
   const reverbGain = c.createGain()
-  reverbGain.gain.value = 0.3
+  reverbGain.gain.value = 0.25
   convolver.connect(reverbGain)
   reverbGain.connect(masterAmb)
 
-  // 和声垫: 压得极低, 只是心跳下面的一层薄纱
-  const lowpass = c.createBiquadFilter()
-  lowpass.type = 'lowpass'
-  lowpass.frequency.value = 900
-  lowpass.Q.value = 0.3
-  lowpass.connect(masterAmb)
-  lowpass.connect(convolver)
-
-  const lfo = c.createOscillator()
-  lfo.frequency.value = 0.05
-  const lfoGain = c.createGain()
-  lfoGain.gain.value = 240
-  lfo.connect(lfoGain)
-  lfoGain.connect(lowpass.frequency)
-
-  const makeVoice = (freq, gain0) => {
-    const vg = c.createGain()
-    vg.gain.value = gain0
-    vg.connect(lowpass)
-    for (const det of [-3, 3]) {
-      const o = c.createOscillator()
-      o.type = 'sine'
-      o.frequency.value = freq
-      o.detune.value = det
-      o.connect(vg)
-      o.start()
-      amb.nodes.push(o)
-    }
-    amb.nodes.push(vg)
-    return vg
-  }
-
-  makeVoice(220, 0.04)     // A3
-  makeVoice(277.18, 0.03)  // C#4
-  makeVoice(440, 0.012)    // A4
-  const eGain = makeVoice(329.63, 0.028) // E4 (与 F#3 交替)
-  const fGain = makeVoice(185, 0)        // F#3
-
-  // 和声缓变: E4 <-> F#3 交替(A 大调 <-> F#m 色彩), 16 秒一次、6 秒滑变
-  let fadeState = 0
-  amb.timers.push(setInterval(() => {
-    if (!ambientRunning || !ctx) return
-    const tt = ctx.currentTime
-    if (fadeState === 0) {
-      eGain.gain.linearRampToValueAtTime(0, tt + 6)
-      fGain.gain.linearRampToValueAtTime(0.028, tt + 6)
-      fadeState = 1
-    } else {
-      eGain.gain.linearRampToValueAtTime(0.028, tt + 6)
-      fGain.gain.linearRampToValueAtTime(0, tt + 6)
-      fadeState = 0
-    }
-  }, 16000))
-
-  // 慢呼吸: 滤波与总音量 20 秒周期轻微起伏
-  const breath = c.createOscillator()
-  breath.frequency.value = 0.05
-  const breathGain = c.createGain()
-  breathGain.gain.value = 0.02
-  breath.connect(breathGain)
-  breathGain.connect(masterAmb.gain)
-  amb.nodes.push(breath, breathGain)
-
-  // 心跳: 约 50bpm 的 lub-dub 双搏
+  // 心跳通道
   const heartOut = c.createGain()
   heartOut.gain.value = 1
   const heartLp = c.createBiquadFilter()
@@ -187,7 +123,7 @@ export function startAmbient(fade = 1.5) {
   heartOut.connect(heartLp)
   heartLp.connect(masterAmb)
   const heartSend = c.createGain()
-  heartSend.gain.value = 0.22
+  heartSend.gain.value = 0.2
   heartLp.connect(heartSend)
   heartSend.connect(convolver)
 
@@ -203,7 +139,7 @@ export function startAmbient(fade = 1.5) {
     g.gain.exponentialRampToValueAtTime(0.0001, at + 0.38)
     o.connect(g)
     g.connect(heartOut)
-    // 中频声体: 笔记本音箱发不出超低频, 用 100~320Hz 的噪声体保证"咚"可闻
+    // 中频声体: 保证笔记本音箱也能听清"咚"
     const n = c.createBufferSource()
     n.buffer = makeNoiseBuffer(c, 0.3)
     const nLp = c.createBiquadFilter()
@@ -232,15 +168,15 @@ export function startAmbient(fade = 1.5) {
     const cc = ensureCtx()
     if (!cc) return
     const now = cc.currentTime
-    thump(now, 0.17, 110)      // lub: 209->110Hz
-    thump(now + 0.28, 0.1, 95) // dub: 180->95Hz
+    thump(now, 0.18, 110)      // lub: 209->110Hz
+    thump(now + 0.28, 0.11, 95) // dub: 180->95Hz
   }, 1200))
 
   const t = c.currentTime
   masterAmb.gain.setValueAtTime(0, t)
-  masterAmb.gain.linearRampToValueAtTime(0.5, t + Math.max(0.5, fade))
+  masterAmb.gain.linearRampToValueAtTime(0.75, t + Math.max(0.5, fade))
 
-  amb.nodes.push(masterAmb, convolver, reverbGain, lowpass, lfo, lfoGain)
+  amb.nodes.push(masterAmb, convolver, reverbGain, heartOut, heartLp, heartSend)
 }
 
 export function stopAmbient() {
