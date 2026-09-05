@@ -258,6 +258,17 @@ body {
   gap: 8px;
   margin-bottom: 12px;
 }
+.panel-toggle {
+  display: none; /* 仅手机端显示: 折叠/展开数据面板 */
+  background: none;
+  border: none;
+  color: var(--cyan-soft);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 2px;
+  cursor: pointer;
+}
 .live-dot {
   width: 8px;
   height: 8px;
@@ -672,16 +683,28 @@ body {
   }
   .intro-title h1 { font-size: 26px; letter-spacing: 0.3em; padding-left: 0.3em; }
   .intro-title p { font-size: 10px; letter-spacing: 0.34em; padding-left: 0.34em; }
+  /* 数据面板默认折叠成一条横条, 不遮挡地球; 点右上角箭头展开 */
   .stats-panel {
     left: 10px;
     right: 10px;
     width: auto;
     top: auto;
     bottom: 10px;
-    max-height: 44vh;
-    padding: 12px 14px 10px;
+    padding: 9px 14px 10px;
+    max-height: none;
+    overflow: hidden;
   }
-  .big-value { font-size: 22px; }
+  .stats-panel .panel-head { margin-bottom: 6px; }
+  .stats-panel .panel-toggle { display: block; }
+  .stats-panel .big-stat { margin-bottom: 0; }
+  .stats-panel .big-value { font-size: 20px; }
+  .stats-panel:not(.expanded) .m-hide { display: none !important; }
+  .stats-panel.expanded {
+    max-height: 56vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.25) transparent;
+  }
   .country-card {
     right: 10px;
     left: 10px;

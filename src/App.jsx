@@ -123,6 +123,7 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
   const [sessionStart] = useState(() => Date.now())
   const [showAllCauses, setShowAllCauses] = useState(false)
   const [showMethod, setShowMethod] = useState(false)
+  const [expanded, setExpanded] = useState(false) // 手机端默认折叠, 避免遮挡地球
   const causes = useMemo(() => {
     const yearSec = snap.yearSec || 1
     return DEATH_CAUSES.map((c) => ({ ...c, n: Math.floor((c.annual / 31557600) * yearSec) }))
@@ -139,23 +140,30 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
   const sessD = Math.floor(sessionSec * snap.deathsPerSec)
   const compact = useCallback((v) => fmtCompact(v, lang), [lang])
   return (
-    <div className="panel stats-panel">
+    <div className={`panel stats-panel ${expanded ? 'expanded' : ''}`}>
       <div className="panel-head">
         <span className="live-dot" />
         <span className="live-label">{t.projection}</span>
         <span className="clock">{clockText(lang)}</span>
+        <button
+          className="panel-toggle"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? 'collapse' : 'expand'}
+        >
+          {expanded ? '▾' : '▴'}
+        </button>
       </div>
       <div className="big-stat">
         <div className="big-label">{t.worldPop}</div>
         <RollingNumber className="big-value" value={snap.worldPopulation} />
-        <div className="rate-line">
+        <div className="rate-line m-hide">
           {t.ratePrefix} <b className="nb">{snap.birthsPerSec.toFixed(1)}</b>{t.birthWord}
           {' · '}<b className="nd">{snap.deathsPerSec.toFixed(1)}</b>{t.deathWord}
           {' · '}<b className="nn">+{snap.netPerSec.toFixed(1)}</b>{t.netWord}
         </div>
       </div>
 
-      <div className="session-box">
+      <div className="session-box m-hide">
         <div className="session-label">{t.sinceOpen}</div>
         <div className="session-grid">
           <div className="session-item">
@@ -169,7 +177,7 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         </div>
       </div>
 
-      <div className="stat-grid">
+      <div className="stat-grid m-hide">
         <div className="stat birth">
           <span className="stat-label">{t.birthsToday}</span>
           <RollingNumber className="stat-value" value={snap.birthsToday} format={compact} />
@@ -188,10 +196,10 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         </div>
       </div>
 
-      <div className="divider" />
+      <div className="divider m-hide" />
 
-      <div className="section-title">{t.health}</div>
-      <div className="cause-list">
+      <div className="section-title m-hide">{t.health}</div>
+      <div className="cause-list m-hide">
         {visibleCauses.map((c) => (
           <div className="cause-row" key={c.key}>
             <span className="cause-name">{lang === 'en' ? c.en : lang === 'ja' ? c.ja : c.zh}</span>
@@ -200,12 +208,12 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
           </div>
         ))}
       </div>
-      <button className="expand-toggle" onClick={() => setShowAllCauses((v) => !v)}>
+      <button className="expand-toggle m-hide" onClick={() => setShowAllCauses((v) => !v)}>
         {showAllCauses ? t.showLess : t.showAll}
       </button>
 
-      <div className="section-title">{t.topBirths}</div>
-      <div className="top-list">
+      <div className="section-title m-hide">{t.topBirths}</div>
+      <div className="top-list m-hide">
         {topBirths.map((c, i) => (
           <div className="top-row" key={c.iso3}
             onMouseEnter={() => onHoverCountry(c.iso3)}
@@ -217,7 +225,7 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         ))}
       </div>
 
-      <div className="fun-rows">
+      <div className="fun-rows m-hide">
         <div className="fun-row">
           <span className="fun-name">{t.cigarettes}</span>
           <span className="fun-num">{compact(cig)}</span>
@@ -228,11 +236,11 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         </div>
       </div>
 
-      <button className="method-toggle" onClick={() => setShowMethod((v) => !v)}>
+      <button className="method-toggle m-hide" onClick={() => setShowMethod((v) => !v)}>
         {t.methodTitle} {showMethod ? '▴' : '▾'}
       </button>
       {showMethod && (
-        <div className="method-box">
+        <div className="method-box m-hide">
           <p>{t.methodBody}</p>
           <div className="trust-title">{t.trustRealTitle}</div>
           <ul>{t.trustReal.map((s) => <li key={s}>{s}</li>)}</ul>
@@ -478,7 +486,7 @@ export default function App() {
       world.controls().maxDistance = 800
       world.controls().autoRotate = false
       world.controls().autoRotateSpeed = 0.35
-      const PR = MOBILE ? 1.2 : Math.min(2, window.devicePixelRatio)
+      const PR = Math.min(2, window.devicePixelRatio) // 手机高分屏同样用高像素比, 避免地球发糊/锯齿
       world.renderer().setPixelRatio(PR)
       world.width(window.innerWidth).height(window.innerHeight)
       const onResize = () => {
