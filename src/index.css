@@ -638,6 +638,14 @@ body {
   color: var(--cyan);
   text-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
 }
+/* 默认开启但尚未解锁(等待首次手势): 呼吸光晕提示 */
+.sound-btn.pending {
+  animation: sound-pending 2.4s ease-in-out infinite;
+}
+@keyframes sound-pending {
+  0%, 100% { box-shadow: 0 0 0 rgba(34, 211, 238, 0); }
+  50% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.45); }
+}
 
 /* ————————————————— 底部提示 ————————————————— */
 .hint {

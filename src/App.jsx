@@ -13,7 +13,8 @@ import {
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
-  ensureCtx, startAmbient, stopAmbient, playBirth, playDeath, setMuted, isMuted,
+  ensureCtx, startAmbient, stopAmbient, playBirth, playDeath, playIntro,
+  setMuted, isMuted, audioDebug,
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
@@ -308,6 +309,7 @@ export default function App() {
   const hoverIsoRef = useRef(null)
   const selectedIsoRef = useRef(null)
   const introDoneRef = useRef(false)
+  const introAudioRef = useRef(false) // 开场飞入期间为 true, 首次解锁音频时据此播放接近音
   const [lang, setLang] = useState(() => (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en')
   const t = T[lang]
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
@@ -316,7 +318,8 @@ export default function App() {
   const [ready, setReady] = useState(false)       // 地球+贴图就绪, 开场开始
   const [booted, setBooted] = useState(false)     // 面板入场
   const [introGone, setIntroGone] = useState(false) // 标题谢幕
-  const [soundOn, setSoundOn] = useState(false)
+  const [soundOn, setSoundOn] = useState(true)    // 默认开启(首次手势解锁后真正发声)
+  const [audioReady, setAudioReady] = useState(false)
   const MOBILE = useMemo(() => window.innerWidth <= 768, [])
 
   // 引擎订阅
@@ -324,8 +327,33 @@ export default function App() {
     worldEngine.setFeatures(window.__GEO_FEATURES__ || [])
     const un = worldEngine.subscribe(setSnap)
     worldEngine.start()
-    return () => { un(); worldEngine.stop() }
+    window.__AUDIO_DEBUG__ = audioDebug // 调试句柄
+    return () => { un(); worldEngine.stop(); stopAmbient() }
   }, [])
+
+  // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
+  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接环境音景。
+  const enableAudio = useCallback(() => {
+    ensureCtx()
+    setMuted(false)
+    setAudioReady(true)
+    if (introAudioRef.current) {
+      const d = playIntro() || 3
+      setTimeout(() => { if (!isMuted()) startAmbient() }, d * 720)
+    } else {
+      startAmbient()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onGesture = () => enableAudio()
+    window.addEventListener('pointerdown', onGesture, { once: true })
+    window.addEventListener('keydown', onGesture, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', onGesture)
+      window.removeEventListener('keydown', onGesture)
+    }
+  }, [enableAudio])
 
   // 加载真实国界
   useEffect(() => {
@@ -563,8 +591,8 @@ export default function App() {
 
       const unPulse = worldEngine.onPulse((p) => {
         spawn(p)
-        if (p.type === 'birth') playBirth(0.16)
-        else playDeath(0.13)
+        if (p.type === 'birth') playBirth()
+        else playDeath()
       })
 
       // 调试句柄
@@ -618,8 +646,7 @@ export default function App() {
 
       // ——— 交互 ———
       world.onPolygonClick((f) => {
-        // 注意: 此处不可调用 ensureCtx(), 否则任何点击都会解锁 AudioContext,
-        // 导致静音模式下首次点击后音效突然涌出
+        // 音频解锁由全局首次手势监听统一处理(见 enableAudio), 此处无需介入
         setSelectedIso((prev) => (prev === f.__iso3 ? null : f.__iso3))
       })
       world.onGlobeClick(() => setSelectedIso(null))
@@ -632,12 +659,14 @@ export default function App() {
 
       // ——— 开场: 相机从深空飞入, 标题渐显 ———
       world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
+      introAudioRef.current = true // 开场期间首次手势 -> 播放接近音
       timers.push(setTimeout(() => {
         world.pointOfView({ lat: 24, lng: 105, altitude: MOBILE ? 3.4 : 2.35 }, 3400)
       }, 80))
       timers.push(setTimeout(() => setBooted(true), 1500))
       timers.push(setTimeout(() => {
         introDoneRef.current = true
+        introAudioRef.current = false
         setIntroGone(true)
         world.controls().autoRotate = !selectedIsoRef.current
       }, 5000))
@@ -699,21 +728,17 @@ export default function App() {
     }, 950)
   }, [selectedIso, refreshPolygons])
 
-  // 声音开关(仅在用户主动开启声音时解锁 AudioContext)
+  // 声音开关: 默认已开启, 点击可静音/恢复
   const toggleSound = useCallback(() => {
     if (isMuted()) {
-      // 开启声音: 此时才创建/恢复 AudioContext 并启动环境音景
-      ensureCtx()
-      setMuted(false)
-      startAmbient()
+      enableAudio()
       setSoundOn(true)
     } else {
-      // 关闭声音: 仅置静音, 环境音景淡出
       setMuted(true)
       stopAmbient()
       setSoundOn(false)
     }
-  }, [])
+  }, [enableAudio])
 
   // 键盘 Esc 关闭
   useEffect(() => {
@@ -757,7 +782,11 @@ export default function App() {
             </button>
           ))}
         </div>
-        <button className={`sound-btn ${soundOn ? 'on' : ''}`} onClick={toggleSound}>
+        <button
+          className={`sound-btn ${soundOn ? 'on' : ''} ${soundOn && !audioReady ? 'pending' : ''}`}
+          onClick={toggleSound}
+          title={soundOn ? t.sound : t.muted}
+        >
           {soundOn ? '♪' : '✕♪'}
         </button>
       </div>
