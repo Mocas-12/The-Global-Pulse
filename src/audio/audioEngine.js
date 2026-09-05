@@ -86,9 +86,9 @@ export function playIntro() {
   return dur
 }
 
-// 环境音景: 纯连续背景。
-// 暖垫(A3/C#4/A4 + E4<->F#3 和声缓变) + 慢呼吸滤波与音量起伏, 没有任何音符事件。
-export function startAmbient() {
+// 环境音景: 脉搏心跳为主角(约50bpm lub-dub) + 极轻的和声垫作底。
+// 心跳音色: 低频滑落 + 噪声声体, 软攻击, 有肉感而非电子哔声。
+export function startAmbient(fade = 1.5) {
   if (ambientRunning) return
   const c = ensureCtx()
   if (!c) return
@@ -115,7 +115,7 @@ export function startAmbient() {
   convolver.connect(reverbGain)
   reverbGain.connect(masterAmb)
 
-  // 暖垫: 中音区, 微失谐(±3 音分)几乎无拍频
+  // 和声垫: 压得极低, 只是心跳下面的一层薄纱
   const lowpass = c.createBiquadFilter()
   lowpass.type = 'lowpass'
   lowpass.frequency.value = 900
@@ -147,11 +147,11 @@ export function startAmbient() {
     return vg
   }
 
-  makeVoice(220, 0.14)     // A3
-  makeVoice(277.18, 0.1)   // C#4
-  makeVoice(440, 0.04)     // A4
-  const eGain = makeVoice(329.63, 0.085) // E4 (与 F#3 交替)
-  const fGain = makeVoice(185, 0)        // F#3
+  makeVoice(220, 0.06)     // A3
+  makeVoice(277.18, 0.045) // C#4
+  makeVoice(440, 0.018)    // A4
+  const eGain = makeVoice(329.63, 0.04) // E4 (与 F#3 交替)
+  const fGain = makeVoice(185, 0)       // F#3
 
   // 和声缓变: E4 <-> F#3 交替(A 大调 <-> F#m 色彩), 16 秒一次、6 秒滑变
   let fadeState = 0
@@ -160,10 +160,10 @@ export function startAmbient() {
     const tt = ctx.currentTime
     if (fadeState === 0) {
       eGain.gain.linearRampToValueAtTime(0, tt + 6)
-      fGain.gain.linearRampToValueAtTime(0.09, tt + 6)
+      fGain.gain.linearRampToValueAtTime(0.042, tt + 6)
       fadeState = 1
     } else {
-      eGain.gain.linearRampToValueAtTime(0.085, tt + 6)
+      eGain.gain.linearRampToValueAtTime(0.04, tt + 6)
       fGain.gain.linearRampToValueAtTime(0, tt + 6)
       fadeState = 0
     }
@@ -173,14 +173,68 @@ export function startAmbient() {
   const breath = c.createOscillator()
   breath.frequency.value = 0.05
   const breathGain = c.createGain()
-  breathGain.gain.value = 0.04
+  breathGain.gain.value = 0.02
   breath.connect(breathGain)
   breathGain.connect(masterAmb.gain)
   amb.nodes.push(breath, breathGain)
 
+  // 心跳: 约 50bpm 的 lub-dub 双搏
+  const heartOut = c.createGain()
+  heartOut.gain.value = 1
+  const heartLp = c.createBiquadFilter()
+  heartLp.type = 'lowpass'
+  heartLp.frequency.value = 200
+  heartOut.connect(heartLp)
+  heartLp.connect(masterAmb)
+  const heartSend = c.createGain()
+  heartSend.gain.value = 0.22
+  heartLp.connect(heartSend)
+  heartSend.connect(convolver)
+
+  const thump = (at, vol, base) => {
+    // 低频滑落体: 80->42Hz, 软攻击
+    const o = c.createOscillator()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(base * 1.9, at)
+    o.frequency.exponentialRampToValueAtTime(base, at + 0.22)
+    const g = c.createGain()
+    g.gain.setValueAtTime(0, at)
+    g.gain.linearRampToValueAtTime(vol, at + 0.028)
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.38)
+    o.connect(g)
+    g.connect(heartOut)
+    // 噪声声体: 让音箱小也能听出"肉感"而非电子哔声
+    const n = c.createBufferSource()
+    n.buffer = makeNoiseBuffer(c, 0.3)
+    const nLp = c.createBiquadFilter()
+    nLp.type = 'lowpass'
+    nLp.frequency.value = 150
+    const ng = c.createGain()
+    ng.gain.setValueAtTime(vol * 0.5, at)
+    ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.1)
+    n.connect(nLp)
+    nLp.connect(ng)
+    ng.connect(heartOut)
+    o.start(at)
+    o.stop(at + 0.4)
+    n.start(at)
+    n.stop(at + 0.12)
+    o.onended = () => {
+      try { o.disconnect(); g.disconnect(); n.disconnect(); nLp.disconnect(); ng.disconnect() } catch { /* noop */ }
+    }
+  }
+  amb.timers.push(setInterval(() => {
+    if (!ambientRunning || muted || document.hidden) return
+    const cc = ensureCtx()
+    if (!cc) return
+    const now = cc.currentTime
+    thump(now, 0.15, 45)        // lub
+    thump(now + 0.28, 0.09, 40) // dub
+  }, 1200))
+
   const t = c.currentTime
   masterAmb.gain.setValueAtTime(0, t)
-  masterAmb.gain.linearRampToValueAtTime(0.4, t + 5)
+  masterAmb.gain.linearRampToValueAtTime(0.5, t + Math.max(0.5, fade))
 
   amb.nodes.push(masterAmb, convolver, reverbGain, lowpass, lfo, lfoGain)
 }
