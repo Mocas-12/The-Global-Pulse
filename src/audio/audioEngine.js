@@ -147,11 +147,11 @@ export function startAmbient(fade = 1.5) {
     return vg
   }
 
-  makeVoice(220, 0.06)     // A3
-  makeVoice(277.18, 0.045) // C#4
-  makeVoice(440, 0.018)    // A4
-  const eGain = makeVoice(329.63, 0.04) // E4 (与 F#3 交替)
-  const fGain = makeVoice(185, 0)       // F#3
+  makeVoice(220, 0.04)     // A3
+  makeVoice(277.18, 0.03)  // C#4
+  makeVoice(440, 0.012)    // A4
+  const eGain = makeVoice(329.63, 0.028) // E4 (与 F#3 交替)
+  const fGain = makeVoice(185, 0)        // F#3
 
   // 和声缓变: E4 <-> F#3 交替(A 大调 <-> F#m 色彩), 16 秒一次、6 秒滑变
   let fadeState = 0
@@ -160,10 +160,10 @@ export function startAmbient(fade = 1.5) {
     const tt = ctx.currentTime
     if (fadeState === 0) {
       eGain.gain.linearRampToValueAtTime(0, tt + 6)
-      fGain.gain.linearRampToValueAtTime(0.042, tt + 6)
+      fGain.gain.linearRampToValueAtTime(0.028, tt + 6)
       fadeState = 1
     } else {
-      eGain.gain.linearRampToValueAtTime(0.04, tt + 6)
+      eGain.gain.linearRampToValueAtTime(0.028, tt + 6)
       fGain.gain.linearRampToValueAtTime(0, tt + 6)
       fadeState = 0
     }
@@ -183,7 +183,7 @@ export function startAmbient(fade = 1.5) {
   heartOut.gain.value = 1
   const heartLp = c.createBiquadFilter()
   heartLp.type = 'lowpass'
-  heartLp.frequency.value = 200
+  heartLp.frequency.value = 500
   heartOut.connect(heartLp)
   heartLp.connect(masterAmb)
   const heartSend = c.createGain()
@@ -192,7 +192,7 @@ export function startAmbient(fade = 1.5) {
   heartSend.connect(convolver)
 
   const thump = (at, vol, base) => {
-    // 低频滑落体: 80->42Hz, 软攻击
+    // 低频滑落体: 起点两倍频滑到基频, 音高下落给出"咚"的听感
     const o = c.createOscillator()
     o.type = 'sine'
     o.frequency.setValueAtTime(base * 1.9, at)
@@ -203,24 +203,28 @@ export function startAmbient(fade = 1.5) {
     g.gain.exponentialRampToValueAtTime(0.0001, at + 0.38)
     o.connect(g)
     g.connect(heartOut)
-    // 噪声声体: 让音箱小也能听出"肉感"而非电子哔声
+    // 中频声体: 笔记本音箱发不出超低频, 用 100~320Hz 的噪声体保证"咚"可闻
     const n = c.createBufferSource()
     n.buffer = makeNoiseBuffer(c, 0.3)
     const nLp = c.createBiquadFilter()
     nLp.type = 'lowpass'
-    nLp.frequency.value = 150
+    nLp.frequency.value = 320
+    const nHp = c.createBiquadFilter()
+    nHp.type = 'highpass'
+    nHp.frequency.value = 100
     const ng = c.createGain()
-    ng.gain.setValueAtTime(vol * 0.5, at)
-    ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.1)
+    ng.gain.setValueAtTime(vol * 0.7, at)
+    ng.gain.exponentialRampToValueAtTime(0.0001, at + 0.12)
     n.connect(nLp)
-    nLp.connect(ng)
+    nLp.connect(nHp)
+    nHp.connect(ng)
     ng.connect(heartOut)
     o.start(at)
     o.stop(at + 0.4)
     n.start(at)
     n.stop(at + 0.12)
     o.onended = () => {
-      try { o.disconnect(); g.disconnect(); n.disconnect(); nLp.disconnect(); ng.disconnect() } catch { /* noop */ }
+      try { o.disconnect(); g.disconnect(); n.disconnect(); nLp.disconnect(); nHp.disconnect(); ng.disconnect() } catch { /* noop */ }
     }
   }
   amb.timers.push(setInterval(() => {
@@ -228,8 +232,8 @@ export function startAmbient(fade = 1.5) {
     const cc = ensureCtx()
     if (!cc) return
     const now = cc.currentTime
-    thump(now, 0.15, 45)        // lub
-    thump(now + 0.28, 0.09, 40) // dub
+    thump(now, 0.17, 110)      // lub: 209->110Hz
+    thump(now + 0.28, 0.1, 95) // dub: 180->95Hz
   }, 1200))
 
   const t = c.currentTime
