@@ -1,13 +1,11 @@
-// audioEngine.js — Web Audio 合成音效: 开场接近音 / 出生音 / 死亡音 / 环境音景
-// 设计原则: 一件"乐器"(音盒) + 一个"和声"(A 大调) + 可预测的缓慢律动。
-// 可预测 = 放松; 随机孤立的高频事件 = 不安。全场音量刻意压低, 是"配乐"不是"音效墙"。
+// audioEngine.js — Web Audio 纯背景音: 开场接近音 + 持续流动的和声垫
+// 没有任何离散的音符事件(无钢琴音/无嘟嘟声/无琶音), 要么连续要么固定缓变。
 // 默认开启; 浏览器自动播放策略下, 在首次用户手势时解锁并入场。
 let ctx = null
 let master = null
 let ambient = null
 let ambientRunning = false
 let muted = false
-const lastPlay = { birth: 0, death: 0 }
 
 export function ensureCtx() {
   if (!ctx) {
@@ -42,61 +40,6 @@ function makeNoiseBuffer(c, seconds) {
   const d = buf.getChannelData(0)
   for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
   return buf
-}
-
-// 音盒音色: 纯正弦主音 + 一缕高八度三角波泛音, 短攻击、长指数衰减
-// 可选借用环境混响(ambient 在跑时), 让音符落进同一空间
-function musicBox(freq, vol, dur, slideTo) {
-  if (muted || document.hidden) return
-  const c = ensureCtx()
-  if (!c) return
-  const t = c.currentTime
-  const o = c.createOscillator()
-  o.type = 'sine'
-  o.frequency.setValueAtTime(freq, t)
-  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur * 0.8)
-  const o2 = c.createOscillator()
-  o2.type = 'triangle'
-  o2.frequency.value = freq * 2
-  const o2g = c.createGain()
-  o2g.gain.value = 0.15
-  const g = c.createGain()
-  g.gain.setValueAtTime(0, t)
-  g.gain.linearRampToValueAtTime(vol, t + 0.012)
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-  o.connect(g)
-  o2.connect(o2g)
-  o2g.connect(g)
-  g.connect(master)
-  if (ambient?.reverb) g.connect(ambient.reverb)
-  o.start(t)
-  o2.start(t)
-  o.stop(t + dur + 0.05)
-  o2.stop(t + dur + 0.05)
-  o.onended = () => {
-    try { o.disconnect(); o2.disconnect(); o2g.disconnect(); g.disconnect() } catch { /* noop */ }
-  }
-}
-
-// 出生: 音盒轻拨, 同一调内随机音高(A4/C#5/E5/A5), 罕见而轻, 只是点缀
-export function playBirth() {
-  if (muted || document.hidden) return
-  if (Math.random() < 0.72) return
-  const now = performance.now()
-  if (now - lastPlay.birth < 900) return
-  lastPlay.birth = now
-  const KEY = [440, 554.37, 659.25, 880]
-  musicBox(KEY[(Math.random() * KEY.length) | 0], 0.03, 1.4)
-}
-
-// 死亡: 同一音色低八度下行轻叹(E4 -> A3), 更罕见
-export function playDeath() {
-  if (muted || document.hidden) return
-  if (Math.random() < 0.78) return
-  const now = performance.now()
-  if (now - lastPlay.death < 1100) return
-  lastPlay.death = now
-  musicBox(329.63, 0.028, 0.8, 220)
 }
 
 // 开场: 由远到近的接近音——柔化的风声扫频 + 轻微隆隆, 尾部交给环境垫, 返回时长(秒)
@@ -143,16 +86,15 @@ export function playIntro() {
   return dur
 }
 
-// 环境音景: 纯背景, 无离散音符事件。
-// 心跳(约52bpm 的 lub-dub 双搏) + 暖垫(A3/C#4/E4) + 和声缓变(A -> F#m 色彩交替)。
-// 全部是连续或固定节律的声音: 可预测 = 放松。
+// 环境音景: 纯连续背景。
+// 暖垫(A3/C#4/A4 + E4<->F#3 和声缓变) + 慢呼吸滤波与音量起伏, 没有任何音符事件。
 export function startAmbient() {
   if (ambientRunning) return
   const c = ensureCtx()
   if (!c) return
   ambientRunning = true
 
-  const amb = { nodes: [], timers: [], reverb: null }
+  const amb = { nodes: [], timers: [] }
   ambient = amb
 
   const masterAmb = c.createGain()
@@ -172,7 +114,6 @@ export function startAmbient() {
   reverbGain.gain.value = 0.3
   convolver.connect(reverbGain)
   reverbGain.connect(masterAmb)
-  amb.reverb = convolver
 
   // 暖垫: 中音区, 微失谐(±3 音分)几乎无拍频
   const lowpass = c.createBiquadFilter()
@@ -189,30 +130,7 @@ export function startAmbient() {
   lfo.connect(lfoGain)
   lfoGain.connect(lowpass.frequency)
 
-  const VOICES = [
-    { freq: 220, gain: 0.14 },    // A3
-    { freq: 277.18, gain: 0.1 },  // C#4
-    { freq: 440, gain: 0.04 },    // A4
-  ]
-  const padNodes = []
-  for (const v of VOICES) {
-    const vg = c.createGain()
-    vg.gain.value = v.gain
-    vg.connect(lowpass)
-    for (const det of [-3, 3]) {
-      const o = c.createOscillator()
-      o.type = 'sine'
-      o.frequency.value = v.freq
-      o.detune.value = det
-      o.connect(vg)
-      o.start()
-      padNodes.push(o)
-    }
-    padNodes.push(vg)
-  }
-
-  // 和声缓变: E4 <-> F#3 交替(A 大调 <-> F#m 色彩), 16 秒一次、6 秒滑变, 无攻击感
-  const fadeOsc = (freq, gain0) => {
+  const makeVoice = (freq, gain0) => {
     const vg = c.createGain()
     vg.gain.value = gain0
     vg.connect(lowpass)
@@ -223,12 +141,19 @@ export function startAmbient() {
       o.detune.value = det
       o.connect(vg)
       o.start()
-      padNodes.push(o)
+      amb.nodes.push(o)
     }
+    amb.nodes.push(vg)
     return vg
   }
-  const eGain = fadeOsc(329.63, 0.085) // E4
-  const fGain = fadeOsc(185, 0)        // F#3
+
+  makeVoice(220, 0.14)     // A3
+  makeVoice(277.18, 0.1)   // C#4
+  makeVoice(440, 0.04)     // A4
+  const eGain = makeVoice(329.63, 0.085) // E4 (与 F#3 交替)
+  const fGain = makeVoice(185, 0)        // F#3
+
+  // 和声缓变: E4 <-> F#3 交替(A 大调 <-> F#m 色彩), 16 秒一次、6 秒滑变
   let fadeState = 0
   amb.timers.push(setInterval(() => {
     if (!ambientRunning || !ctx) return
@@ -244,58 +169,20 @@ export function startAmbient() {
     }
   }, 16000))
 
-  // 慢呼吸: 音量 20 秒一个周期轻微起伏
+  // 慢呼吸: 滤波与总音量 20 秒周期轻微起伏
   const breath = c.createOscillator()
   breath.frequency.value = 0.05
   const breathGain = c.createGain()
   breathGain.gain.value = 0.04
   breath.connect(breathGain)
   breathGain.connect(masterAmb.gain)
-
-  // 心跳: 约 52bpm 的 lub-dub 双搏, 低频软脉冲, 主题所在
-  const heartOut = c.createGain()
-  heartOut.gain.value = 1
-  const heartLp = c.createBiquadFilter()
-  heartLp.type = 'lowpass'
-  heartLp.frequency.value = 240
-  heartOut.connect(heartLp)
-  heartLp.connect(masterAmb)
-  const heartSend = c.createGain()
-  heartSend.gain.value = 0.18
-  heartLp.connect(heartSend)
-  heartSend.connect(convolver)
-
-  const thump = (at, vol, freq) => {
-    const o = c.createOscillator()
-    o.type = 'sine'
-    o.frequency.setValueAtTime(freq * 1.5, at)
-    o.frequency.exponentialRampToValueAtTime(freq, at + 0.09)
-    const g = c.createGain()
-    g.gain.setValueAtTime(0, at)
-    g.gain.linearRampToValueAtTime(vol, at + 0.012)
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.24)
-    o.connect(g)
-    g.connect(heartOut)
-    o.start(at)
-    o.stop(at + 0.27)
-    o.onended = () => {
-      try { o.disconnect(); g.disconnect() } catch { /* noop */ }
-    }
-  }
-  amb.timers.push(setInterval(() => {
-    if (!ambientRunning || muted || document.hidden) return
-    const cc = ensureCtx()
-    if (!cc) return
-    const now = cc.currentTime
-    thump(now, 0.12, 58)
-    thump(now + 0.22, 0.075, 50)
-  }, 1150))
+  amb.nodes.push(breath, breathGain)
 
   const t = c.currentTime
   masterAmb.gain.setValueAtTime(0, t)
   masterAmb.gain.linearRampToValueAtTime(0.4, t + 5)
 
-  amb.nodes = [masterAmb, convolver, reverbGain, lowpass, lfo, lfoGain, breath, breathGain, heartOut, heartLp, heartSend, ...padNodes]
+  amb.nodes.push(masterAmb, convolver, reverbGain, lowpass, lfo, lfoGain)
 }
 
 export function stopAmbient() {

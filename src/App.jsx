@@ -13,7 +13,7 @@ import {
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
-  ensureCtx, startAmbient, stopAmbient, playBirth, playDeath, playIntro,
+  ensureCtx, startAmbient, stopAmbient, playIntro,
   setMuted, isMuted, audioDebug,
 } from './audio/audioEngine'
 
@@ -320,6 +320,8 @@ export default function App() {
   const [introGone, setIntroGone] = useState(false) // 标题谢幕
   const [soundOn, setSoundOn] = useState(true)    // 默认开启(首次手势解锁后真正发声)
   const [audioReady, setAudioReady] = useState(false)
+  const audioReadyRef = useRef(false)
+  const unlockAtRef = useRef(0) // 解锁时刻: 防止同一次手势(pointerdown+click)把声音又关掉
   const MOBILE = useMemo(() => window.innerWidth <= 768, [])
 
   // 引擎订阅
@@ -332,10 +334,11 @@ export default function App() {
   }, [])
 
   // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
-  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接环境音景。
+  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接环境音。
   const enableAudio = useCallback(() => {
     ensureCtx()
     setMuted(false)
+    audioReadyRef.current = true
     setAudioReady(true)
     if (introAudioRef.current) {
       const d = playIntro() || 3
@@ -346,7 +349,10 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const onGesture = () => enableAudio()
+    const onGesture = () => {
+      unlockAtRef.current = Date.now()
+      enableAudio()
+    }
     window.addEventListener('pointerdown', onGesture, { once: true })
     window.addEventListener('keydown', onGesture, { once: true })
     return () => {
@@ -591,8 +597,6 @@ export default function App() {
 
       const unPulse = worldEngine.onPulse((p) => {
         spawn(p)
-        if (p.type === 'birth') playBirth()
-        else playDeath()
       })
 
       // 调试句柄
@@ -728,8 +732,13 @@ export default function App() {
     }, 950)
   }, [selectedIso, refreshPolygons])
 
-  // 声音开关: 默认已开启, 点击可静音/恢复
+  // 声音开关: 未解锁前, 第一次点击只负责"开启"(不当作关闭)
   const toggleSound = useCallback(() => {
+    if (!audioReadyRef.current || Date.now() - unlockAtRef.current < 600) {
+      enableAudio()
+      setSoundOn(true)
+      return
+    }
     if (isMuted()) {
       enableAudio()
       setSoundOn(true)
@@ -791,7 +800,7 @@ export default function App() {
         </button>
       </div>
 
-      <div className="hint">{t.clickHint}</div>
+      <div className="hint">{soundOn && !audioReady ? t.soundPendingHint : t.clickHint}</div>
     </div>
   )
 }
