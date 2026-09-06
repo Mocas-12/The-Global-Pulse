@@ -49,7 +49,7 @@
 - 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
 - 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation
 - 🈶 **Trilingual interface** — 中文 / English / 日本語
-- 🔊 **Synthesized sound** — birth/death chimes and an ambient soundscape synthesized in real time with Web Audio (off by default; enable via the top-right corner)
+- 🔊 **Synthesized sound** — an intro approach sound and a heartbeat ambient soundscape synthesized in real time with Web Audio (on by default; unlocked automatically on your first interaction, mute via the top-right corner)
 
 ## 🎨 UI Design
 
@@ -75,7 +75,7 @@ flowchart LR
 2. **Real-time simulation**: with World Bank annual crude birth/death rates as the rate, "today / this year" figures are integrated from local midnight / the start of the year; the world population base is the sum of each country's 2024 estimate (about 8.21 billion)
 3. **Landing-point sampling**: pulse lights are weighted by each country's birth/death rate and randomly sampled to land inside real national-border polygons
 4. **Rendering & interaction**: globe.gl + three.js render the globe and pulses; `src/engine/globeFX.js` provides custom shaders — the subsolar point is computed from UTC in real time via a low-precision astronomical algorithm (±0.01°), blending day/night textures, ocean glint and atmospheric scattering every frame; GSAP drives the animations, and clicking a country flies the camera in and opens a details card
-5. **Synthesized audio**: Web Audio synthesizes birth/death chimes and an ambient soundscape in real time — no audio files at all
+5. **Synthesized audio**: Web Audio synthesizes the intro approach sound and a heartbeat ambient soundscape in real time — no audio files at all
 
 ## 📁 Project Structure
 
@@ -145,9 +145,9 @@ npm run dev        # Dev: http://localhost:5173
 </details>
 
 <details>
-<summary><b>How do I enable the sound</b></summary>
+<summary><b>How do I mute the sound</b></summary>
 
-- Sound is off by default; click the speaker icon in the top-right corner to enable it. Birth/death chimes and the ambient soundscape are all synthesized in real time with Web Audio
+- Sound is on by default and unlocks automatically on your first interaction (browser autoplay policy); click the speaker icon in the top-right corner to mute it. The ambient soundscape is synthesized in real time with Web Audio — no discrete note events
 </details>
 
 ## 📚 Data Sources

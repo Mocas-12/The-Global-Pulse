@@ -231,6 +231,7 @@ class WorldEngine {
     if (now >= this.dayStart + MS_PER_DAY) {
       const n = new Date(now)
       this.dayStart = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()
+      this.yearStart = new Date(n.getFullYear(), 0, 1).getTime()
     }
     const yearSec = Math.max(0, (now - this.yearStart) / 1000)
     const daySec = Math.max(0, (now - this.dayStart) / 1000)
@@ -283,13 +284,6 @@ class WorldEngine {
         birthsToday: Math.floor(s.daySec * c.birthsPerSec),
         birthsPerSec: c.birthsPerSec,
       }))
-  }
-
-  topByPopulation(n = 24) {
-    return Object.values(this.countries)
-      .sort((a, b) => b.population - a.population)
-      .slice(0, n)
-      .map((c) => c.iso3)
   }
 
   subscribe(fn) {

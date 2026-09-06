@@ -14,13 +14,12 @@ import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
   ensureCtx, startAmbient, stopAmbient, playIntro,
-  setMuted, isMuted, audioDebug,
+  setMuted, isMuted,
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
 const TEX = {
   day: `${BASE}img/earth-day-4k.jpg`,
-  dayFallback: `${BASE}img/earth-dark.jpg`,
   night: `${BASE}img/earth-night.jpg`,
   water: `${BASE}img/earth-water-4k.png`,
   clouds: `${BASE}img/clouds.jpg`,
@@ -28,6 +27,7 @@ const TEX = {
 
 const GLOBE_R = 100
 const PULSE_R = 101.8 // 高于国家多边形表面(101)与云层(100.6), 避免遮挡
+const MOBILE = window.innerWidth <= 768
 
 const fmt = (n, lang) => {
   try {
@@ -53,12 +53,12 @@ const fmtCompact = (n, lang) => {
   return sign + Math.round(abs)
 }
 
-const clockText = (lang) => {
+const clockText = () => {
   const d = new Date()
   const p2 = (x) => String(x).padStart(2, '0')
   const date = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`
   const time = `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`
-  return lang === 'en' ? `${date} ${time}` : `${date} ${time}`
+  return `${date} ${time}`
 }
 
 // ————————————————————————————— 顶部滚动快讯 —————————————————————————————
@@ -67,19 +67,17 @@ function NewsTicker({ lang }) {
   useEffect(() => {
     setItems([makeNews(lang), makeNews(lang), makeNews(lang)])
     let alive = true
+    let timer
     const loop = () => {
       const delay = 3800 + Math.random() * 3200
-      return setTimeout(() => {
+      timer = setTimeout(() => {
         if (!alive) return
-        setItems((prev) => {
-          const next = [...prev.slice(-11), makeNews(lang)]
-          return next
-        })
-        timerRef.current = loop()
+        setItems((prev) => [...prev.slice(-11), makeNews(lang)])
+        loop()
       }, delay)
     }
-    const timerRef = { current: loop() }
-    return () => { alive = false; clearTimeout(timerRef.current) }
+    loop()
+    return () => { alive = false; clearTimeout(timer) }
   }, [lang])
   const seq = items.map((it) => (
     <span key={it.id} className={`ticker-item ${it.kind}`}>
@@ -144,7 +142,7 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
       <div className="panel-head">
         <span className="live-dot" />
         <span className="live-label">{t.projection}</span>
-        <span className="clock">{clockText(lang)}</span>
+        <span className="clock">{clockText()}</span>
         <button
           className="panel-toggle"
           onClick={() => setExpanded((v) => !v)}
@@ -313,7 +311,6 @@ function CountryCard({ detail, lang, onClose }) {
 export default function App() {
   const containerRef = useRef(null)
   const globeRef = useRef(null)
-  const fxRef = useRef(null) // 地球特效句柄: 材质/网格/脉冲缓冲
   const hoverIsoRef = useRef(null)
   const selectedIsoRef = useRef(null)
   const introDoneRef = useRef(false)
@@ -341,14 +338,12 @@ export default function App() {
   const [audioReady, setAudioReady] = useState(false)
   const audioReadyRef = useRef(false)
   const unlockAtRef = useRef(0) // 解锁时刻: 防止同一次手势(pointerdown+click)把声音又关掉
-  const MOBILE = useMemo(() => window.innerWidth <= 768, [])
 
   // 引擎订阅
   useEffect(() => {
     worldEngine.setFeatures(window.__GEO_FEATURES__ || [])
     const un = worldEngine.subscribe(setSnap)
     worldEngine.start()
-    window.__AUDIO_DEBUG__ = audioDebug // 调试句柄
     return () => { un(); worldEngine.stop(); stopAmbient() }
   }, [])
 
@@ -398,6 +393,7 @@ export default function App() {
             worldEngine.setFeatures(window.__GEO_FEATURES__)
             setGeoLoaded(true)
           })
+          .catch(() => {})
       })
   }, [])
 
@@ -463,16 +459,10 @@ export default function App() {
     let dead = false
     const timers = []
 
-    const loadTex = (url, fallbackUrl) => new Promise((res) => {
-      const loader = new THREE.TextureLoader()
-      loader.load(url, (tex) => res(tex), undefined, () => {
-        if (fallbackUrl) loader.load(fallbackUrl, (t2) => res(t2), undefined, () => res(null))
-        else res(null)
-      })
-    })
+    const loadTex = (url) => new THREE.TextureLoader().loadAsync(url).catch(() => null)
 
     Promise.all([
-      loadTex(TEX.day, TEX.dayFallback),
+      loadTex(TEX.day),
       loadTex(TEX.night),
       loadTex(TEX.water),
       loadTex(TEX.clouds),
@@ -575,16 +565,14 @@ export default function App() {
       const rings = createRings({ max: MAX, pixelRatio: PR })
       scene.add(rings.points)
       fx.rings = rings
-      fx.flash = { geom: flashGeom, mat: flashMat, positions, colors, baseColors, life, tex: dotTex }
       fx.head = 0
       fx.ringHead = 0
 
       const setPulsePosition = (arr, i, lat, lng) => {
-        const phi = (90 - lat) * (Math.PI / 180)
-        const theta = (90 - lng) * (Math.PI / 180)
-        arr[i * 3] = PULSE_R * Math.sin(phi) * Math.cos(theta)
-        arr[i * 3 + 1] = PULSE_R * Math.cos(phi)
-        arr[i * 3 + 2] = PULSE_R * Math.sin(phi) * Math.sin(theta)
+        const v = latLngToVec3(lat, lng, PULSE_R)
+        arr[i * 3] = v.x
+        arr[i * 3 + 1] = v.y
+        arr[i * 3 + 2] = v.z
       }
       const BIRTH = new THREE.Color(0x2affb4)
       const DEATH = new THREE.Color(0xff5470)
@@ -617,13 +605,6 @@ export default function App() {
       const unPulse = worldEngine.onPulse((p) => {
         spawn(p)
       })
-
-      // 调试句柄
-      window.__PULSE_DEBUG__ = {
-        activeCount: () => { let n = 0; for (let i = 0; i < MAX; i++) if (life[i] > 0) n += 1; return n },
-        spawned: () => fx.head,
-        pointsObj: flashPoints,
-      }
 
       // ——— 主渲染循环: 实时太阳 / 云漂移 / 星闪烁 / 脉冲衰减 ———
       let raf = 0
@@ -695,8 +676,6 @@ export default function App() {
       }, 5000))
 
       globeRef.current = world
-      fxRef.current = fx
-      window.__GLOBE__ = world // 调试句柄
       setReady(true)
 
       return () => {
@@ -726,7 +705,6 @@ export default function App() {
         rings.mat.uniforms.uMap.value.dispose()
         world._destructor?.()
         globeRef.current = null
-        fxRef.current = null
       }
     })
 
