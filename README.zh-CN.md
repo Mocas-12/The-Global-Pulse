@@ -50,6 +50,8 @@
 - 📰 **滚动快讯** — 基于推演数据的实时国别新生 / 全球死因播报
 - 🈶 **三语界面** — 中文 / English / 日本語
 - 🔊 **合成音效** — Web Audio 实时合成的开场接近音与心跳环境音景（默认开启，首次交互自动解锁，可点击右上角静音）
+- ⚡ **秒开优化** — 3D 场景按需异步加载（首屏 JS gzip 约 78KB）+ 全部贴图 WebP 化 + 白天贴图先行渲染、夜灯/云层渐入
+- 🛡️ **质量门禁** — CI 强制 lint + 单测（覆盖推演引擎的几何采样 / 时间积分 / 数据兜底）+ 构建，全局 ErrorBoundary 兜底与 `prefers-reduced-motion` 降级
 
 ## 🎨 界面设计
 
@@ -59,7 +61,7 @@
 | 面板 | 玻璃拟态：半透明深色底 + 背景模糊增饱和 + 细描边 + 顶部高光线 |
 | 强调色 | 天青 `#38bdf8` 主色；出生绿 `#2affb4` · 死亡红 `#ff5470` 双色语义 |
 | 主视觉 | 3D 写实地球：NASA 昼/夜贴图 + 实时晨昏线 + 大气散射 + 云层，国家以细描边 + 淡着色呈现 |
-| 动效 | 出生/死亡闪光 + 涟漪冲击波；开场相机飞入与标题谢幕；GSAP 数字滚动 |
+| 动效 | 出生/死亡闪光 + 涟漪冲击波；开场相机飞入与标题谢幕；rAF 数字滚动补间；`prefers-reduced-motion` 自动降级 |
 | 布局 | 顶部滚动快讯 + 左侧统计面板 + 点击弹出国家卡片（相机飞往） |
 
 ## 🧠 工作原理
@@ -74,29 +76,34 @@ flowchart LR
 1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON，并拉取世界银行三项指标 2015 年以来全部数据、取各国最新值
 2. **实时推演**：以世界银行年度粗出生率 / 死亡率为速率，从当日零点 / 年初起积分得到"今日 / 今年"数字；世界人口基数取各国 2024 年估计值之和（约 82.1 亿）
 3. **落点采样**：脉冲光点按各国出生 / 死亡率加权，随机采样落在真实国境多边形内部
-4. **渲染交互**：globe.gl + three.js 渲染地球与脉冲；`src/engine/globeFX.js` 提供自定义着色器 —— 依低精度天文算法（±0.01°）由 UTC 实时推算太阳直射点，逐帧混合昼/夜贴图、海面高光与大气散射；GSAP 驱动动效，点击国家相机飞往并弹出详情卡片
+4. **渲染交互**：globe.gl + three.js 按需异步加载（`src/engine/globeScene.js`，与数据下载并行）；`src/engine/globeFX.js` 提供自定义着色器 —— 依低精度天文算法（±0.01°）由 UTC 实时推算太阳直射点，逐帧混合昼/夜贴图、海面高光与大气散射；白天贴图先到先渲染，夜灯/云层就绪后渐入；点击国家相机飞往并弹出详情卡片
 5. **合成音效**：Web Audio 实时合成开场接近音与心跳环境音景，无任何音频文件
 
 ## 📁 项目结构
 
 ```text
 The-Global-Pulse/
-├── index.html               # 单页入口
+├── index.html               # 单页入口（og/twitter 分享 meta）
 ├── logo.svg                 # 项目 Logo
 ├── scripts/
 │   └── fetch_data.py        # 数据管道：国界 + 世界银行指标
 ├── src/
-│   ├── App.jsx              # 主应用（地球渲染 / 面板 / 交互 / 开场）
+│   ├── main.jsx             # 挂载入口（StrictMode + ErrorBoundary）
+│   ├── ErrorBoundary.jsx    # 全局兜底：渲染异常时显示错误与重载
+│   ├── App.jsx              # 主应用（面板 / 交互 / 音频解锁 / 场景装配）
 │   ├── engine/worldEngine.js # 数据引擎：真实比率 → 实时推演 + 国境内随机采样
 │   ├── engine/globeFX.js    # 视觉引擎：昼夜光照 / 大气 / 云层 / 星空 / 涟漪着色器
+│   ├── engine/globeScene.js # 地球场景：初始化 / 开场动画 / 渲染循环（按需异步加载）
 │   ├── audio/audioEngine.js # Web Audio 合成音效
 │   ├── data/worldBankData.json # 世界银行 2024 指标（由脚本生成）
 │   ├── i18n.js              # 三语文案
 │   ├── news.js              # 滚动快讯生成
 │   └── index.css            # 深空影调主题（玻璃拟态面板 / 开场序列）
+├── tests/worldEngine.test.js # 引擎单测（vitest）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国界（由脚本生成）
-    └── img/                  # NASA 地球贴图：昼 4K / 夜景灯光 / 水面遮罩 / 云层
+    ├── og-card.png          # 分享卡片图
+    └── img/                 # NASA 地球贴图（WebP）：昼 4K / 夜景灯光 / 水面遮罩 / 云层
 ```
 
 ## 🚀 快速开始
@@ -112,10 +119,12 @@ npm run dev        # 开发：http://localhost:5173
 | --- | --- |
 | `npm run dev` | 启动开发服务器 |
 | `npm run build` | 构建到 `dist/` |
+| `npm run lint` | ESLint 检查 |
+| `npm test` | 运行引擎单元测试（vitest） |
 | `npm run preview` | 本地预览构建产物 |
 | `python scripts/fetch_data.py` | 重新拉取国界与世界银行数据（需 Python 3） |
 
-> 推送（push）到 `main` 分支后，GitHub Actions 自动构建并发布到 GitHub Pages，无需手动部署。
+> 推送（push）到 `main` 分支后，GitHub Actions 依次执行 lint → 单测 → 构建，全部通过才发布到 GitHub Pages。另有每月 3 日自动重跑数据管道、有变更时自动开 PR 的工作流。
 
 ## 🔢 数据与口径
 
@@ -141,7 +150,8 @@ npm run dev        # 开发：http://localhost:5173
 <details>
 <summary><b>如何更新到最新数据</b></summary>
 
-- 本地安装 Python 3 后运行 `python scripts/fetch_data.py`，重新生成国界 GeoJSON 与世界银行指标 JSON
+- 仓库内已有每月 3 日自动运行 `scripts/fetch_data.py` 并在数据有变更时开 PR 的工作流，合并即可
+- 也可以本地安装 Python 3 后运行 `python scripts/fetch_data.py` 手动重新生成
 </details>
 
 <details>
