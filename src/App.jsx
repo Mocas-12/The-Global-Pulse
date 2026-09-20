@@ -351,12 +351,13 @@ export default function App() {
   const audioReadyRef = useRef(false)
   const unlockAtRef = useRef(0) // 解锁时刻: 防止同一次手势(pointerdown+click)把声音又关掉
 
-  // 引擎订阅
+  // 引擎订阅; ?pause 为测试确定性钩子: 冻结推演(数字/脉冲不再变化), 供 E2E 断言与截图
+  const frozen = useMemo(() => new URLSearchParams(window.location.search).has('pause'), [])
   useEffect(() => {
     const un = worldEngine.subscribe(setSnap)
-    worldEngine.start()
+    if (!frozen) worldEngine.start()
     return () => { un(); worldEngine.stop(); stopAmbient() }
-  }, [])
+  }, [frozen])
 
   // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
   // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接心跳背景音。
