@@ -7,6 +7,8 @@
 **全球人口脉搏 —— 真实国界 · 真实数据 · 实时推演的 3D 生命地球**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live-222?logo=githubpages&logoColor=white)](https://mocas-12.github.io/The-Global-Pulse/)
+[![Deploy](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml)
+[![Production monitor](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/prod-monitor.yml/badge.svg)](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/prod-monitor.yml)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
 [![Three.js](https://img.shields.io/badge/Three.js-183-000?logo=threedotjs&logoColor=white)](https://threejs.org)
@@ -51,7 +53,7 @@
 - 🈶 **三语界面** — 中文 / English / 日本語
 - 🔊 **合成音效** — Web Audio 实时合成的开场接近音与心跳环境音景（默认开启，首次交互自动解锁，可点击右上角静音）
 - ⚡ **秒开优化** — 3D 场景按需异步加载（首屏 JS gzip 约 78KB）+ 全部贴图 WebP 化 + 白天贴图先行渲染、夜灯/云层渐入
-- 🛡️ **质量门禁** — CI 强制 lint + 单测（覆盖推演引擎的几何采样 / 时间积分 / 数据兜底）+ 构建，全局 ErrorBoundary 兜底与 `prefers-reduced-motion` 降级
+- 🛡️ **质量门禁** — CI 四道关卡（ESLint → 引擎与组件单元测试 → Playwright 冒烟×构建产物/开发服务器双环境 → 构建）全绿才发布；每 6 小时对线上站点自动拨测，失败邮件通知；全局 ErrorBoundary 兜底与 `prefers-reduced-motion` 降级
 
 ## 🎨 界面设计
 
@@ -99,7 +101,11 @@ The-Global-Pulse/
 │   ├── i18n.js              # 三语文案
 │   ├── news.js              # 滚动快讯生成
 │   └── index.css            # 深空影调主题（玻璃拟态面板 / 开场序列）
-├── tests/worldEngine.test.js # 引擎单测（vitest）
+├── e2e/smoke.spec.js        # Playwright 冒烟测试（移动端 / ?pause 冻结 / StrictMode 单实例）
+├── playwright.config.js     # E2E 配置：构建产物 + 开发服务器双环境
+├── playwright.prod.config.js # 线上拨测配置（对生产站点跑）
+├── tests/worldEngine.test.js # 引擎单测（几何采样 / 时间积分 / 数据兜底）
+├── tests/components.test.jsx # 组件单测（翻牌数字 / 快讯 / 面板 / 错误边界）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国界（由脚本生成）
     ├── og-card.png          # 分享卡片图
@@ -114,6 +120,8 @@ cd The-Global-Pulse
 npm install
 npm run dev        # 开发：http://localhost:5173
 ```
+
+> 需要 Node ≥ 22（仓库用 `.nvmrc` 固定 24，与 CI 一致）；本地跑 E2E 前先 `npx playwright install chromium`。
 
 | 命令 | 说明 |
 | --- | --- |
