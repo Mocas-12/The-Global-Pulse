@@ -6,7 +6,9 @@ export default defineConfig({
   base: '/The-Global-Pulse/',
   plugins: [react()],
   test: {
-    // 只收集引擎单测, 避免误抓 e2e/*.spec.js (那归 Playwright)
-    include: ['tests/**/*.test.js'],
+    // 只收集单测(引擎 jsdom 环境均可跑), 避免误抓 e2e/*.spec.js (那归 Playwright)
+    include: ['tests/**/*.test.{js,jsx}'],
+    environment: 'jsdom',
+    globals: true,
   },
 })

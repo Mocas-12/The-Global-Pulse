@@ -120,11 +120,12 @@ npm run dev        # 开发：http://localhost:5173
 | `npm run dev` | 启动开发服务器 |
 | `npm run build` | 构建到 `dist/` |
 | `npm run lint` | ESLint 检查 |
-| `npm test` | 运行引擎单元测试（vitest） |
+| `npm test` | 运行单元测试（引擎 + 组件，vitest） |
+| `npm run e2e` | 运行 Playwright 冒烟测试（构建产物 + 开发服务器双环境） |
 | `npm run preview` | 本地预览构建产物 |
 | `python scripts/fetch_data.py` | 重新拉取国界与世界银行数据（需 Python 3） |
 
-> 推送（push）到 `main` 分支后，GitHub Actions 依次执行 lint → 单测 → 构建，全部通过才发布到 GitHub Pages。另有每月 3 日自动重跑数据管道、有变更时自动开 PR 的工作流。
+> 推送（push）到 `main` 分支后，GitHub Actions 依次执行 lint → 单测 → E2E → 构建，全部通过才发布到 GitHub Pages。另有每 6 小时对线上站点跑冒烟测试的拨测工作流（失败邮件通知），以及每月 3 日自动重跑数据管道、有变更时自动开 PR 的工作流。
 
 ## 🔢 数据与口径
 

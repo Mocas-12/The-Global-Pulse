@@ -32,6 +32,18 @@ test('?pause: 推演冻结, 数字稳定可断言', async ({ page }) => {
   expect(v2).toBe(v1)
 })
 
+test('移动端: 面板默认折叠且不遮挡地球', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(PATH)
+  await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
+  const panel = page.locator('.stats-panel')
+  await expect(panel).toBeVisible()
+  await expect(panel).not.toHaveClass(/expanded/)
+  // 点箭头可展开
+  await page.locator('.panel-toggle').click()
+  await expect(panel).toHaveClass(/expanded/)
+})
+
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'dev', '双挂载只发生在开发模式')
   await page.goto(PATH)

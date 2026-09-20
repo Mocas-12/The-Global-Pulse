@@ -8,7 +8,7 @@ export default defineConfig([
   globalIgnores(['dist']),
   {
     // Node 环境的配置文件: 允许 process 等全局
-    files: ['playwright.config.js', 'vite.config.js'],
+    files: ['playwright.config.js', 'playwright.prod.config.js', 'vite.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
   {

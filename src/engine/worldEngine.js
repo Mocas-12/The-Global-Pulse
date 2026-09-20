@@ -15,6 +15,9 @@ const NAME_OVERRIDES = {
   PRK: { zh: '朝鲜' },
 }
 
+// 兜底名单排除: 无常住人口的地区, 不参与出生/死亡推演
+const FALLBACK_EXCLUDE = new Set(['ATA'])
+
 // 已发布的权威年度估计(用于死亡原因与参考事实, 见 README 数据来源)
 // WHO Global Health Estimates / UN IGME / UNAIDS / UNODC 等
 export const DEATH_CAUSES = [
@@ -166,6 +169,7 @@ export class WorldEngine {
       const ja = p.NAME_JA || p.NAME
       const c = this.countries[iso3]
       if (!c) {
+        if (FALLBACK_EXCLUDE.has(iso3)) continue
         // 世界银行未覆盖的地区(如台湾地区/索马里兰等): 用 NE 人口估计 + 世界平均率
         const pop = p.POP_EST || 500000
         this.countries[iso3] = {

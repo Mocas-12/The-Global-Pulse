@@ -120,11 +120,12 @@ npm run dev        # Dev: http://localhost:5173
 | `npm run dev` | Start the dev server |
 | `npm run build` | Build into `dist/` |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run engine unit tests (vitest) |
+| `npm test` | Run unit tests (engine + components, vitest) |
+| `npm run e2e` | Run Playwright smoke tests (built bundle + dev server) |
 | `npm run preview` | Preview the build locally |
 | `python scripts/fetch_data.py` | Re-fetch borders and World Bank data (requires Python 3) |
 
-> After a push to `main`, GitHub Actions runs lint → unit tests → build and only publishes to GitHub Pages when all pass. A separate workflow re-runs the data pipeline on the 3rd of every month and opens a PR automatically when the data changes.
+> After a push to `main`, GitHub Actions runs lint → unit tests → E2E → build and only publishes to GitHub Pages when all pass. A separate workflow smoke-tests the live site every 6 hours (failure notification emails), and another re-runs the data pipeline on the 3rd of every month, opening a PR automatically when the data changes.
 
 ## 🔢 Data & Methodology
 

@@ -58,7 +58,7 @@ const clockText = () => {
 
 // ————————————————————————————— 顶部滚动快讯 —————————————————————————————
 // 语言切换经由 <NewsTicker key={lang}/> 重挂载完成, 初始 items 直接以当前语言生成
-function NewsTicker({ lang }) {
+export function NewsTicker({ lang }) {
   const [items, setItems] = useState(() => [makeNews(lang), makeNews(lang), makeNews(lang)])
   useEffect(() => {
     let alive = true
@@ -104,7 +104,7 @@ function tweenNumber(el, from, to, fmtFn) {
   return () => cancelAnimationFrame(raf)
 }
 
-function RollingNumber({ value, className, format, instant }) {
+export function RollingNumber({ value, className, format, instant }) {
   const ref = useRef(null)
   const prevRef = useRef(value)
   const fmtFn = useMemo(() => format || ((v) => v.toLocaleString('en-US')), [format])
@@ -120,7 +120,7 @@ function RollingNumber({ value, className, format, instant }) {
 }
 
 // ————————————————————————————— 左侧主面板 —————————————————————————————
-function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountry }) {
+export function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountry }) {
   const t = T[lang]
   const [sessionStart] = useState(() => Date.now())
   const [showAllCauses, setShowAllCauses] = useState(false)
@@ -261,7 +261,7 @@ function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountry }) {
 }
 
 // ————————————————————————————— 国家详情卡 —————————————————————————————
-function CountryCard({ detail, lang, onClose }) {
+export function CountryCard({ detail, lang, onClose }) {
   const t = T[lang]
   const c = detail
   return (
