@@ -49,6 +49,7 @@ const GLOBE_FRAG = /* glsl */ `
   uniform sampler2D uWater;
   uniform vec3 uSunDir;
   uniform float uNightBoost;
+  uniform float uWaterK;
   varying vec2 vUv;
   varying vec3 vNormalW;
   varying vec3 vPosW;
@@ -70,8 +71,8 @@ const GLOBE_FRAG = /* glsl */ `
 
     vec3 col = mix(night, day, dayMix);
 
-    // 海面太阳耀斑
-    float waterMask = texture2D(uWater, vUv).r;
+    // 海面太阳耀斑(uWaterK: 贴图就绪后渐入)
+    float waterMask = texture2D(uWater, vUv).r * uWaterK;
     vec3 H = normalize(uSunDir + V);
     float spec = pow(max(dot(N, H), 0.0), 48.0) * waterMask * dayMix;
     col += vec3(1.0, 0.90, 0.72) * spec * 0.9;
@@ -97,7 +98,8 @@ export function createGlobeMaterial({ day, night, water }) {
       uNight: { value: night },
       uWater: { value: water },
       uSunDir: { value: new THREE.Vector3(1, 0, 0) },
-      uNightBoost: { value: 1.6 },
+      uNightBoost: { value: 0 },
+      uWaterK: { value: 0 },
     },
     vertexShader: GLOBE_VERT,
     fragmentShader: GLOBE_FRAG,
@@ -140,6 +142,7 @@ export function createAtmosphere(radius = 118) {
 const CLOUD_FRAG = /* glsl */ `
   uniform sampler2D uMap;
   uniform vec3 uSunDir;
+  uniform float uFade;
   varying vec2 vUv;
   varying vec3 vNormalW;
   void main() {
@@ -147,7 +150,7 @@ const CLOUD_FRAG = /* glsl */ `
     float ndl = dot(normalize(vNormalW), uSunDir);
     float light = clamp(ndl * 1.15 + 0.06, 0.0, 1.1);
     vec3 col = vec3(0.35, 0.44, 0.58) * 0.22 + vec3(1.0) * light;
-    float alpha = cov * 0.62 * (0.22 + 0.78 * light);
+    float alpha = cov * 0.62 * (0.22 + 0.78 * light) * uFade;
     gl_FragColor = vec4(col, alpha);
   }
 `
@@ -157,6 +160,7 @@ export function createClouds(texture, radius = 100.6) {
     uniforms: {
       uMap: { value: texture },
       uSunDir: { value: new THREE.Vector3(1, 0, 0) },
+      uFade: { value: 0 },
     },
     vertexShader: GLOBE_VERT,
     fragmentShader: CLOUD_FRAG,

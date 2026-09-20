@@ -1,0 +1,34 @@
+name: Refresh World Bank data
+
+# 每月 3 日自动重跑数据抓取脚本, 有变更时开 PR
+on:
+  schedule:
+    - cron: '0 7 3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/fetch_data.py
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'data: 刷新世界银行人口/出生/死亡数据'
+          title: 'data: monthly World Bank data refresh'
+          body: |
+            自动运行 `scripts/fetch_data.py` 的结果（Natural Earth 国界 + 世界银行最新指标）。
+            审查数据差异后合并即可。
+          branch: data-refresh
+          delete-branch: true

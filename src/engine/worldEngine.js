@@ -56,7 +56,7 @@ function buildCountries() {
   return map
 }
 
-function bboxOf(geometry) {
+export function bboxOf(geometry) {
   let minX = 180, minY = 90, maxX = -180, maxY = -90
   const walk = (arr) => {
     if (typeof arr[0] === 'number') {
@@ -72,7 +72,7 @@ function bboxOf(geometry) {
   return [minX, minY, maxX, maxY]
 }
 
-function pointInRing(ring, x, y) {
+export function pointInRing(ring, x, y) {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const xi = ring[i][0], yi = ring[i][1]
@@ -84,7 +84,7 @@ function pointInRing(ring, x, y) {
   return inside
 }
 
-function pointInGeometry(geometry, x, y) {
+export function pointInGeometry(geometry, x, y) {
   const polys = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
   for (const poly of polys) {
     if (!pointInRing(poly[0], x, y)) continue
@@ -97,7 +97,7 @@ function pointInGeometry(geometry, x, y) {
   return false
 }
 
-class WorldEngine {
+export class WorldEngine {
   constructor() {
     this.countries = buildCountries()
     this.features = []

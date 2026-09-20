@@ -1,15 +1,9 @@
 // App.jsx — The Global Pulse · 全球人口脉搏
 // 真实国界(Natural Earth) + 真实数据(世界银行 2024) + 实时推演
 // 视觉: NASA 昼/夜贴图 + 实时太阳晨昏线 + 大气散射 + 云层 + 星空 + 涟漪脉冲
+// three/globe.gl 等重型依赖经 globeScene 动态加载, 首屏只渲染轻量外壳
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Globe from 'globe.gl'
-import { gsap } from 'gsap'
-import * as THREE from 'three'
 import { worldEngine, DEATH_CAUSES, REFERENCE_FACTS } from './engine/worldEngine'
-import {
-  sunLatLon, latLngToVec3, createGlobeMaterial, createAtmosphere,
-  createClouds, createStarfield, createRings,
-} from './engine/globeFX'
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
@@ -18,16 +12,17 @@ import {
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
-const TEX = {
-  day: `${BASE}img/earth-day-4k.jpg`,
-  night: `${BASE}img/earth-night.jpg`,
-  water: `${BASE}img/earth-water-4k.png`,
-  clouds: `${BASE}img/clouds.jpg`,
-}
 
-const GLOBE_R = 100
-const PULSE_R = 101.8 // 高于国家多边形表面(101)与云层(100.6), 避免遮挡
-const MOBILE = window.innerWidth <= 768
+const useMedia = (query) => {
+  const [match, setMatch] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const fn = (e) => setMatch(e.matches)
+    mq.addEventListener('change', fn)
+    return () => mq.removeEventListener('change', fn)
+  }, [query])
+  return match
+}
 
 const fmt = (n, lang) => {
   try {
@@ -48,7 +43,7 @@ const fmtCompact = (n, lang) => {
     return sign + Math.round(abs)
   }
   if (abs >= 1e8) return sign + (abs / 1e8).toFixed(1) + (lang === 'ja' ? '億' : '亿')
-  if (abs >= 1e6) return sign + Math.round(abs / 1e4).toLocaleString('en-US') + '万'
+  if (abs >= 1e6) return sign + Math.round(abs / 1e4) + '万'
   if (abs >= 1e4) return sign + (abs / 1e4).toFixed(1) + '万'
   return sign + Math.round(abs)
 }
@@ -62,10 +57,10 @@ const clockText = () => {
 }
 
 // ————————————————————————————— 顶部滚动快讯 —————————————————————————————
+// 语言切换经由 <NewsTicker key={lang}/> 重挂载完成, 初始 items 直接以当前语言生成
 function NewsTicker({ lang }) {
   const [items, setItems] = useState(() => [makeNews(lang), makeNews(lang), makeNews(lang)])
   useEffect(() => {
-    setItems([makeNews(lang), makeNews(lang), makeNews(lang)])
     let alive = true
     let timer
     const loop = () => {
@@ -92,46 +87,53 @@ function NewsTicker({ lang }) {
 }
 
 // ————————————————————————————— 数字翻牌 —————————————————————————————
-function RollingNumber({ value, className, format }) {
+// 手写 rAF 补间(240ms ease-out), 替代整只 gsap 依赖
+function tweenNumber(el, from, to, fmtFn) {
+  const dur = 240
+  let raf = 0
+  const t0 = performance.now()
+  const diff = to - from
+  if (diff <= 0) { el.textContent = fmtFn(to); return () => {} }
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / dur)
+    const e = 1 - Math.pow(1 - p, 3)
+    el.textContent = fmtFn(Math.round(from + diff * e))
+    if (p < 1) raf = requestAnimationFrame(tick)
+  }
+  raf = requestAnimationFrame(tick)
+  return () => cancelAnimationFrame(raf)
+}
+
+function RollingNumber({ value, className, format, instant }) {
   const ref = useRef(null)
   const prevRef = useRef(value)
   const fmtFn = useMemo(() => format || ((v) => v.toLocaleString('en-US')), [format])
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el) return undefined
     const from = prevRef.current
     prevRef.current = value
-    const obj = { v: from }
-    const diff = value - from
-    if (diff <= 0) { el.textContent = fmtFn(value); return }
-    const tw = gsap.to(obj, {
-      v: value,
-      duration: 0.24,
-      ease: 'power1.out',
-      onUpdate: () => { el.textContent = fmtFn(Math.round(obj.v)) },
-    })
-    return () => tw.kill()
-  }, [value, fmtFn])
+    if (instant) { el.textContent = fmtFn(value); return undefined }
+    return tweenNumber(el, from, value, fmtFn)
+  }, [value, fmtFn, instant])
   return <span ref={ref} className={className}>{fmtFn(value)}</span>
 }
 
 // ————————————————————————————— 左侧主面板 —————————————————————————————
-function StatsPanel({ snap, lang, onHoverCountry }) {
+function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountry }) {
   const t = T[lang]
   const [sessionStart] = useState(() => Date.now())
   const [showAllCauses, setShowAllCauses] = useState(false)
   const [showMethod, setShowMethod] = useState(false)
   const [expanded, setExpanded] = useState(false) // 手机端默认折叠, 避免遮挡地球
-  const causes = useMemo(() => {
-    const yearSec = snap.yearSec || 1
-    return DEATH_CAUSES.map((c) => ({ ...c, n: Math.floor((c.annual / 31557600) * yearSec) }))
-      .sort((a, b) => b.n - a.n)
-  }, [snap.yearSec])
+  const yearSec = snap.yearSec || 1
+  const causes = DEATH_CAUSES.map((c) => ({ ...c, n: Math.floor((c.annual / 31557600) * yearSec) }))
+    .sort((a, b) => b.n - a.n)
   const maxCause = causes[0]?.n || 1
   const visibleCauses = showAllCauses ? causes : causes.slice(0, 6)
   const cig = (REFERENCE_FACTS.cigarettesPerYear / 31557600) * (snap.daySec || 0)
   const drug = (REFERENCE_FACTS.illegalDrugsUSDPerYear / 31557600) * (snap.daySec || 0)
-  const topBirths = useMemo(() => worldEngine.topByBirths(5), [snap.birthsToday])
+  const topBirths = worldEngine.topByBirths(5)
   // 「自你打开本页」: 纯前端会话计数, 精确值(由真实速率积分而来)
   const sessionSec = Math.max(0, (snap.at - sessionStart) / 1000)
   const sessB = Math.floor(sessionSec * snap.birthsPerSec)
@@ -153,7 +155,7 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
       </div>
       <div className="big-stat">
         <div className="big-label">{t.worldPop}</div>
-        <RollingNumber className="big-value" value={snap.worldPopulation} />
+        <RollingNumber className="big-value" value={snap.worldPopulation} instant={instant} />
         <div className="rate-line m-hide">
           {t.ratePrefix} <b className="nb">{snap.birthsPerSec.toFixed(1)}</b>{t.birthWord}
           {' · '}<b className="nd">{snap.deathsPerSec.toFixed(1)}</b>{t.deathWord}
@@ -165,11 +167,11 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         <div className="session-label">{t.sinceOpen}</div>
         <div className="session-grid">
           <div className="session-item">
-            <span className="session-num birth"><RollingNumber value={sessB} /></span>
+            <span className="session-num birth"><RollingNumber value={sessB} instant={instant} /></span>
             <span className="session-cap">{t.birthsLabel}</span>
           </div>
           <div className="session-item">
-            <span className="session-num death"><RollingNumber value={sessD} /></span>
+            <span className="session-num death"><RollingNumber value={sessD} instant={instant} /></span>
             <span className="session-cap">{t.deathsLabel}</span>
           </div>
         </div>
@@ -178,19 +180,19 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
       <div className="stat-grid m-hide">
         <div className="stat birth">
           <span className="stat-label">{t.birthsToday}</span>
-          <RollingNumber className="stat-value" value={snap.birthsToday} format={compact} />
+          <RollingNumber className="stat-value" value={snap.birthsToday} format={compact} instant={instant} />
         </div>
         <div className="stat death">
           <span className="stat-label">{t.deathsToday}</span>
-          <RollingNumber className="stat-value" value={snap.deathsToday} format={compact} />
+          <RollingNumber className="stat-value" value={snap.deathsToday} format={compact} instant={instant} />
         </div>
         <div className="stat birth">
           <span className="stat-label">{t.birthsYear}</span>
-          <RollingNumber className="stat-value" value={snap.birthsYear} format={compact} />
+          <RollingNumber className="stat-value" value={snap.birthsYear} format={compact} instant={instant} />
         </div>
         <div className="stat death">
           <span className="stat-label">{t.deathsYear}</span>
-          <RollingNumber className="stat-value" value={snap.deathsYear} format={compact} />
+          <RollingNumber className="stat-value" value={snap.deathsYear} format={compact} instant={instant} />
         </div>
       </div>
 
@@ -215,7 +217,8 @@ function StatsPanel({ snap, lang, onHoverCountry }) {
         {topBirths.map((c, i) => (
           <div className="top-row" key={c.iso3}
             onMouseEnter={() => onHoverCountry(c.iso3)}
-            onMouseLeave={() => onHoverCountry(null)}>
+            onMouseLeave={() => onHoverCountry(null)}
+            onClick={() => onSelectCountry(c.iso3)}>
             <span className="top-rank">{i + 1}</span>
             <span className="top-name">{worldEngine.countryName(c.iso3, lang)}</span>
             <span className="top-num">+{compact(c.birthsToday)}</span>
@@ -310,10 +313,7 @@ function CountryCard({ detail, lang, onClose }) {
 // ————————————————————————————— 主应用 —————————————————————————————
 export default function App() {
   const containerRef = useRef(null)
-  const globeRef = useRef(null)
-  const hoverIsoRef = useRef(null)
-  const selectedIsoRef = useRef(null)
-  const introDoneRef = useRef(false)
+  const sceneRef = useRef(null)
   const introAudioRef = useRef(false) // 开场飞入期间为 true, 首次解锁音频时据此播放接近音
   const [lang, setLang] = useState(() => {
     // 默认中文; 手动切换后记忆(localStorage)
@@ -328,10 +328,22 @@ export default function App() {
     try { localStorage.setItem('tgp-lang', l) } catch { /* noop */ }
   }, [])
   const t = T[lang]
+  const isMobile = useMedia('(max-width: 768px)')
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)')
+  const isMobileRef = useRef(isMobile)
+  const reducedRef = useRef(reducedMotion)
+  useEffect(() => {
+    isMobileRef.current = isMobile
+    sceneRef.current?.setMobile(isMobile)
+  }, [isMobile])
+  useEffect(() => { reducedRef.current = reducedMotion }, [reducedMotion])
+
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
   const [selectedIso, setSelectedIso] = useState(null)
   const [geoLoaded, setGeoLoaded] = useState(false)
-  const [ready, setReady] = useState(false)       // 地球+贴图就绪, 开场开始
+  const [geoError, setGeoError] = useState(false)
+  const [geoAttempt, setGeoAttempt] = useState(0)
+  const [ready, setReady] = useState(false)       // 地球就绪, 开场开始
   const [booted, setBooted] = useState(false)     // 面板入场
   const [introGone, setIntroGone] = useState(false) // 标题谢幕
   const [soundOn, setSoundOn] = useState(true)    // 默认开启(首次手势解锁后真正发声)
@@ -341,7 +353,6 @@ export default function App() {
 
   // 引擎订阅
   useEffect(() => {
-    worldEngine.setFeatures(window.__GEO_FEATURES__ || [])
     const un = worldEngine.subscribe(setSnap)
     worldEngine.start()
     return () => { un(); worldEngine.stop(); stopAmbient() }
@@ -356,11 +367,11 @@ export default function App() {
     setAudioReady(true)
     if (introAudioRef.current) {
       const d = playIntro() || 3
-      setTimeout(() => { if (!isMuted()) startAmbient(1.2, MOBILE) }, d * 720)
+      setTimeout(() => { if (!isMuted()) startAmbient(1.2, isMobileRef.current) }, d * 720)
     } else {
-      startAmbient(1.2, MOBILE)
+      startAmbient(1.2, isMobileRef.current)
     }
-  }, [MOBILE])
+  }, [])
 
   useEffect(() => {
     const onGesture = () => {
@@ -375,359 +386,66 @@ export default function App() {
     }
   }, [enableAudio])
 
-  // 加载真实国界
+  // 加载真实国界(本地优先, 失败回退远程 Natural Earth; 都失败给出重试入口)
   useEffect(() => {
+    let cancelled = false
+    setGeoError(false)
+    const apply = (data) => {
+      if (cancelled) return
+      worldEngine.setFeatures(data.features || [])
+      setGeoLoaded(true)
+    }
     fetch(`${BASE}datasets/countries.geojson`)
       .then((r) => { if (!r.ok) throw new Error(r.status); return r.json() })
-      .then((data) => {
-        window.__GEO_FEATURES__ = data.features || []
-        worldEngine.setFeatures(window.__GEO_FEATURES__)
-        setGeoLoaded(true)
-      })
+      .then(apply)
       .catch(() => {
-        // 兜底: 远程 Natural Earth
         fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
-          .then((r) => r.json())
-          .then((data) => {
-            window.__GEO_FEATURES__ = data.features || []
-            worldEngine.setFeatures(window.__GEO_FEATURES__)
-            setGeoLoaded(true)
-          })
-          .catch(() => {})
+          .then((r) => { if (!r.ok) throw new Error(r.status); return r.json() })
+          .then(apply)
+          .catch(() => { if (!cancelled) setGeoError(true) })
       })
-  }, [])
+    return () => { cancelled = true }
+  }, [geoAttempt])
 
-  useEffect(() => { selectedIsoRef.current = selectedIso }, [selectedIso])
-
-  // 国家多边形着色: 人口对数 -> 淡填充, 让真实地表透出
-  const polygonCapColor = useCallback((f) => {
-    const iso = f.__iso3
-    if (iso === hoverIsoRef.current) return 'rgba(140, 225, 255, 0.42)'
-    if (iso === selectedIsoRef.current) return 'rgba(190, 240, 255, 0.36)'
-    const c = worldEngine.countries[iso]
-    const pop = c?.population || 0
-    const l = Math.log10(Math.max(pop, 1)) // 0 ~ 9.2
-    const k = Math.min(1, Math.max(0, (l - 4.5) / 4.7))
-    const stops = [
-      [12, 34, 72],
-      [16, 92, 140],
-      [24, 200, 235],
-    ]
-    const seg = k < 0.5 ? 0 : 1
-    const p = k < 0.5 ? k * 2 : (k - 0.5) * 2
-    const a = stops[seg]
-    const b = stops[seg + 1]
-    const r = Math.round(a[0] + (b[0] - a[0]) * p)
-    const g = Math.round(a[1] + (b[1] - a[1]) * p)
-    const bl = Math.round(a[2] + (b[2] - a[2]) * p)
-    const alpha = 0.10 + 0.26 * k
-    return `rgba(${r},${g},${bl},${alpha})`
-  }, [])
-
-  const polygonStrokeColor = useCallback((f) => {
-    const iso = f.__iso3
-    if (iso === hoverIsoRef.current) return 'rgba(215, 245, 255, 0.95)'
-    if (iso === selectedIsoRef.current) return 'rgba(255, 255, 255, 0.85)'
-    const c = worldEngine.countries[iso]
-    const k = Math.min(1, Math.max(0, (Math.log10(Math.max(c?.population || 0, 1)) - 4.5) / 4.7))
-    return `rgba(150, 225, 255, ${0.22 + 0.3 * k})`
-  }, [])
-
-  const polygonAltitude = useCallback((f) => {
-    const iso = f.__iso3
-    return (iso === hoverIsoRef.current || iso === selectedIsoRef.current) ? 0.035 : 0.01
-  }, [])
-
-  // 强制重估多边形外观(悬停/选中变化时)
-  const refreshPolygons = useCallback(() => {
-    const w = globeRef.current
-    if (!w) return
-    w.polygonCapColor(polygonCapColor)
-    w.polygonStrokeColor(polygonStrokeColor)
-    w.polygonAltitude(polygonAltitude)
-  }, [polygonCapColor, polygonStrokeColor, polygonAltitude])
-
-  // 面板排行榜悬停 -> 地球上高亮对应国家
-  const highlightCountry = useCallback((iso) => {
-    hoverIsoRef.current = iso || null
-    refreshPolygons()
-  }, [refreshPolygons])
-
-  // ———————— 初始化地球 + 全部视觉特效 + 开场动画 ————————
+  // 地球场景: 动态加载(three/globe.gl 进入异步 chunk), 与数据下载并行
   useEffect(() => {
-    if (!geoLoaded || !containerRef.current || globeRef.current) return
-    let dead = false
-    const timers = []
-
-    const loadTex = (url) => new THREE.TextureLoader().loadAsync(url).catch(() => null)
-
-    Promise.all([
-      loadTex(TEX.day),
-      loadTex(TEX.night),
-      loadTex(TEX.water),
-      loadTex(TEX.clouds),
-    ]).then(([dayTex, nightTex, waterTex, cloudTex]) => {
-      if (dead) return
-
-      const world = Globe({ animateIn: false })(containerRef.current)
-        .backgroundColor('rgba(0,0,0,0)')
-        .showAtmosphere(false)
-        .polygonsData(worldEngine.features)
-        .polygonCapColor(polygonCapColor)
-        .polygonSideColor(() => 'rgba(120, 220, 255, 0.05)')
-        .polygonStrokeColor(polygonStrokeColor)
-        .polygonAltitude(polygonAltitude)
-        .polygonsTransitionDuration(280)
-        .polygonLabel(() => '')
-
-      world.controls().enableDamping = true
-      world.controls().dampingFactor = 0.08
-      world.controls().enablePan = false
-      world.controls().minDistance = 150
-      world.controls().maxDistance = 800
-      world.controls().autoRotate = false
-      world.controls().autoRotateSpeed = 0.35
-      const PR = Math.min(2, window.devicePixelRatio) // 手机高分屏同样用高像素比, 避免地球发糊/锯齿
-      world.renderer().setPixelRatio(PR)
-      world.width(window.innerWidth).height(window.innerHeight)
-      const onResize = () => {
-        world.width(window.innerWidth).height(window.innerHeight)
-      }
-      window.addEventListener('resize', onResize)
-
-      // 星空相机远平面需覆盖星空壳
-      const cam = world.camera()
-      cam.far = 8000
-      cam.near = 10
-      cam.updateProjectionMatrix()
-
-      const maxAniso = world.renderer().capabilities.getMaxAnisotropy()
-      for (const tex of [dayTex, waterTex, cloudTex]) {
-        if (tex) {
-          tex.anisotropy = maxAniso
-          tex.needsUpdate = true
-        }
-      }
-
-      // 地球: 实时昼夜光照
-      const globeMat = createGlobeMaterial({ day: dayTex, night: nightTex, water: waterTex })
-      world.globeMaterial(globeMat)
-
-      const scene = world.scene()
-
-      // 外层大气辉光
-      const atmo = createAtmosphere(GLOBE_R * 1.18)
-      scene.add(atmo.mesh)
-
-      // 云层
-      const fx = { globeMat, atmo }
-      if (cloudTex) {
-        const clouds = createClouds(cloudTex, GLOBE_R * 1.006)
-        scene.add(clouds.mesh)
-        fx.clouds = clouds
-      }
-
-      // 程序化星空
-      const stars = createStarfield({ count: MOBILE ? 3200 : 6500, radius: 2600, pixelRatio: PR })
-      scene.add(stars.points)
-      fx.stars = stars
-
-      // ——— 脉冲: 闪光(加法混合) + 涟漪冲击波 ———
-      const MAX = 260
-      const positions = new Float32Array(MAX * 3)
-      const colors = new Float32Array(MAX * 3)
-      const life = new Float32Array(MAX)
-      const baseColors = new Float32Array(MAX * 3)
-      const flashGeom = new THREE.BufferGeometry()
-      flashGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      flashGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-      const dotTex = (() => {
-        const c = document.createElement('canvas')
-        c.width = c.height = 64
-        const g = c.getContext('2d')
-        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32)
-        grad.addColorStop(0, 'rgba(255,255,255,1)')
-        grad.addColorStop(0.35, 'rgba(255,255,255,0.7)')
-        grad.addColorStop(1, 'rgba(255,255,255,0)')
-        g.fillStyle = grad
-        g.fillRect(0, 0, 64, 64)
-        return new THREE.CanvasTexture(c)
-      })()
-      const flashMat = new THREE.PointsMaterial({
-        size: 8.5, map: dotTex, transparent: true, depthWrite: false,
-        blending: THREE.AdditiveBlending, vertexColors: true, sizeAttenuation: true,
+    if (!geoLoaded || !containerRef.current) return undefined
+    let disposed = false
+    let handle = null
+    import('./engine/globeScene').then(async (m) => {
+      if (disposed) return
+      handle = await m.createGlobeScene(containerRef.current, {
+        isMobile: isMobileRef.current,
+        reducedMotion: reducedRef.current,
+        isAborted: () => disposed,
+        onSelect: (iso) => setSelectedIso(iso),
+        onIntroStart: () => { introAudioRef.current = true },
+        onReady: () => setReady(true),
+        onBooted: () => setBooted(true),
+        onIntroDone: () => {
+          introAudioRef.current = false
+          setIntroGone(true)
+        },
       })
-      const flashPoints = new THREE.Points(flashGeom, flashMat)
-      flashPoints.frustumCulled = false
-      flashPoints.renderOrder = 999
-      scene.add(flashPoints)
-
-      const rings = createRings({ max: MAX, pixelRatio: PR })
-      scene.add(rings.points)
-      fx.rings = rings
-      fx.head = 0
-      fx.ringHead = 0
-
-      const setPulsePosition = (arr, i, lat, lng) => {
-        const v = latLngToVec3(lat, lng, PULSE_R)
-        arr[i * 3] = v.x
-        arr[i * 3 + 1] = v.y
-        arr[i * 3 + 2] = v.z
+      if (disposed) {
+        handle?.dispose()
+        handle = null
+        return
       }
-      const BIRTH = new THREE.Color(0x2affb4)
-      const DEATH = new THREE.Color(0xff5470)
-
-      const spawn = ({ type, lat, lng }) => {
-        const i = fx.head % MAX
-        fx.head += 1
-        setPulsePosition(positions, i, lat, lng)
-        const col = type === 'birth' ? BIRTH : DEATH
-        baseColors[i * 3] = col.r
-        baseColors[i * 3 + 1] = col.g
-        baseColors[i * 3 + 2] = col.b
-        colors[i * 3] = col.r
-        colors[i * 3 + 1] = col.g
-        colors[i * 3 + 2] = col.b
-        life[i] = 1
-        // 涟漪
-        const j = fx.ringHead % MAX
-        fx.ringHead += 1
-        setPulsePosition(rings.positions, j, lat, lng)
-        rings.colors[j * 3] = col.r
-        rings.colors[j * 3 + 1] = col.g
-        rings.colors[j * 3 + 2] = col.b
-        rings.t0[j] = performance.now() / 1000
-        rings.geom.attributes.aT0.needsUpdate = true
-        rings.geom.attributes.aColor.needsUpdate = true
-        rings.geom.attributes.position.needsUpdate = true
-      }
-
-      const unPulse = worldEngine.onPulse((p) => {
-        spawn(p)
-      })
-
-      // ——— 主渲染循环: 实时太阳 / 云漂移 / 星闪烁 / 脉冲衰减 ———
-      let raf = 0
-      let last = performance.now()
-      const loop = () => {
-        const now = performance.now()
-        const dt = Math.min(0.05, (now - last) / 1000)
-        last = now
-        const time = now / 1000
-
-        // 太阳方向: 由真实 UTC 时间推算, 晨昏线与真实世界同步
-        const { lat: slat, lng: slng } = sunLatLon()
-        const sun = latLngToVec3(slat, slng, 1)
-        globeMat.uniforms.uSunDir.value.copy(sun)
-        atmo.mat.uniforms.uSunDir.value.copy(sun)
-        if (fx.clouds) {
-          fx.clouds.mat.uniforms.uSunDir.value.copy(sun)
-          fx.clouds.mesh.rotation.y += dt * 0.0045
-        }
-        stars.mat.uniforms.uTime.value = time
-        rings.mat.uniforms.uTime.value = time
-
-        // 闪光衰减
-        let dirty = false
-        for (let i = 0; i < MAX; i++) {
-          if (life[i] > 0) {
-            life[i] = Math.max(0, life[i] - dt * 0.95)
-            const k = life[i] * life[i] * (3 - 2 * life[i]) // smoothstep 淡出
-            colors[i * 3] = baseColors[i * 3] * k
-            colors[i * 3 + 1] = baseColors[i * 3 + 1] * k
-            colors[i * 3 + 2] = baseColors[i * 3 + 2] * k
-            if (life[i] <= 0) positions[i * 3 + 1] = -9999
-            dirty = true
-          }
-        }
-        if (dirty) {
-          flashGeom.attributes.position.needsUpdate = true
-          flashGeom.attributes.color.needsUpdate = true
-        }
-        raf = requestAnimationFrame(loop)
-      }
-      raf = requestAnimationFrame(loop)
-
-      // ——— 交互 ———
-      world.onPolygonClick((f) => {
-        // 音频解锁由全局首次手势监听统一处理(见 enableAudio), 此处无需介入
-        setSelectedIso((prev) => (prev === f.__iso3 ? null : f.__iso3))
-      })
-      world.onGlobeClick(() => setSelectedIso(null))
-      world.onPolygonHover((f) => {
-        const iso = f?.__iso3 ?? null
-        if (iso === hoverIsoRef.current) return
-        hoverIsoRef.current = iso
-        refreshPolygons()
-      })
-
-      // ——— 开场: 相机从深空飞入, 标题渐显 ———
-      world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
-      introAudioRef.current = true // 开场期间首次手势 -> 播放接近音
-      timers.push(setTimeout(() => {
-        world.pointOfView({ lat: 24, lng: 105, altitude: MOBILE ? 3.4 : 2.35 }, 3400)
-      }, 80))
-      timers.push(setTimeout(() => setBooted(true), 1500))
-      timers.push(setTimeout(() => {
-        introDoneRef.current = true
-        introAudioRef.current = false
-        setIntroGone(true)
-        world.controls().autoRotate = !selectedIsoRef.current
-      }, 5000))
-
-      globeRef.current = world
-      setReady(true)
-
-      return () => {
-        dead = true
-        timers.forEach(clearTimeout)
-        window.removeEventListener('resize', onResize)
-        unPulse()
-        cancelAnimationFrame(raf)
-        scene.remove(atmo.mesh)
-        atmo.mesh.geometry.dispose()
-        atmo.mat.dispose()
-        if (fx.clouds) {
-          scene.remove(fx.clouds.mesh)
-          fx.clouds.mesh.geometry.dispose()
-          fx.clouds.mat.dispose()
-        }
-        scene.remove(stars.points)
-        stars.points.geometry.dispose()
-        stars.mat.dispose()
-        scene.remove(flashPoints)
-        flashGeom.dispose()
-        flashMat.dispose()
-        dotTex.dispose()
-        scene.remove(rings.points)
-        rings.geom.dispose()
-        rings.mat.dispose()
-        rings.mat.uniforms.uMap.value.dispose()
-        world._destructor?.()
-        globeRef.current = null
-      }
+      sceneRef.current = handle
+      handle.setMobile(isMobileRef.current)
     })
+    return () => {
+      disposed = true
+      handle?.dispose()
+      handle = null
+      sceneRef.current = null
+    }
+  }, [geoLoaded])
 
-    return () => { dead = true }
-  }, [geoLoaded, MOBILE, polygonCapColor, polygonStrokeColor, polygonAltitude, refreshPolygons])
-
-  // 选中国家: 高亮 + 相机飞往
   useEffect(() => {
-    const w = globeRef.current
-    if (!w) return
-    refreshPolygons()
-    const c = w.controls()
-    if (c) c.autoRotate = introDoneRef.current && !selectedIso
-    if (!selectedIso) return
-    const f = worldEngine.featureByIso.get(selectedIso)
-    if (!f) return
-    const cur = w.pointOfView()
-    w.pointOfView({
-      lat: f.__labelLat,
-      lng: f.__labelLng,
-      altitude: Math.min(cur.altitude || 2.4, 1.75),
-    }, 950)
-  }, [selectedIso, refreshPolygons])
+    sceneRef.current?.setSelected(selectedIso)
+  }, [selectedIso, geoLoaded])
 
   // 声音开关: 未解锁前, 第一次点击只负责"开启"(不当作关闭)
   const toggleSound = useCallback(() => {
@@ -753,10 +471,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const detail = useMemo(
-    () => (selectedIso ? worldEngine.countryDetail(selectedIso) : null),
-    [selectedIso, snap]
-  )
+  // <html lang> 跟随界面语言
+  useEffect(() => {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang
+  }, [lang])
+
+  const detail = selectedIso ? worldEngine.countryDetail(selectedIso) : null
+  const instant = reducedMotion
 
   return (
     <div className={`app-root ${ready ? 'ready' : ''} ${booted ? 'booted' : ''}`}>
@@ -765,7 +486,15 @@ export default function App() {
       <div className="bg-vignette" aria-hidden="true" />
       <div className="bg-grain" aria-hidden="true" />
 
-      {!ready && <div className="loading-mask"><span className="loading-dot" />{t.loading}</div>}
+      {!ready && !geoError && (
+        <div className="loading-mask"><span className="loading-dot" />{t.loading}</div>
+      )}
+      {geoError && (
+        <div className="loading-mask error-mask" role="alert">
+          <span className="error-text">{t.loadError}</span>
+          <button className="error-retry" onClick={() => setGeoAttempt((n) => n + 1)}>{t.retry}</button>
+        </div>
+      )}
 
       <div className={`intro-title ${introGone ? 'gone' : ''}`} aria-hidden="true">
         <div className="intro-rule" />
@@ -773,10 +502,16 @@ export default function App() {
         <p>{t.subtitle}</p>
       </div>
 
-      <NewsTicker lang={lang} />
+      <NewsTicker key={lang} lang={lang} />
       <div className="slogan">{t.subtitle}</div>
 
-      <StatsPanel snap={snap} lang={lang} onHoverCountry={highlightCountry} />
+      <StatsPanel
+        snap={snap}
+        lang={lang}
+        instant={instant}
+        onHoverCountry={(iso) => sceneRef.current?.setHover(iso)}
+        onSelectCountry={(iso) => setSelectedIso(iso)}
+      />
 
       {detail && <CountryCard detail={detail} lang={lang} onClose={() => setSelectedIso(null)} />}
 
@@ -791,7 +526,8 @@ export default function App() {
         <button
           className={`sound-btn ${soundOn ? 'on' : ''} ${soundOn && !audioReady ? 'pending' : ''}`}
           onClick={toggleSound}
-          title={soundOn ? t.sound : t.muted}
+          title={soundOn ? t.mute : t.unmute}
+          aria-label={soundOn ? t.mute : t.unmute}
         >
           {soundOn ? '♪' : '✕♪'}
         </button>

@@ -98,6 +98,39 @@ body {
 }
 @keyframes pulse-opacity { 50% { opacity: 0.35; } }
 
+/* 加载失败: 错误提示 + 重试按钮 */
+.error-mask {
+  animation: none;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0 24px;
+  text-align: center;
+}
+.error-text {
+  font-size: 12.5px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 128, 148, 0.85);
+  max-width: 30em;
+  line-height: 1.8;
+}
+.error-retry {
+  background: rgba(34, 211, 238, 0.10);
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 9px;
+  color: var(--cyan-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  padding: 9px 30px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.error-retry:hover {
+  background: rgba(34, 211, 238, 0.2);
+  color: #fff;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+}
+
 /* ————————————————— 开场标题(电影式渐显) ————————————————— */
 .intro-title {
   position: fixed;
@@ -457,7 +490,7 @@ body {
   margin: 0 -5px;
   border-radius: 6px;
   transition: background 0.15s;
-  cursor: default;
+  cursor: pointer;
 }
 .top-row:hover { background: rgba(120, 180, 255, 0.09); }
 .top-rank {
@@ -719,4 +752,20 @@ body {
   .top-right { top: 42px; right: 10px; }
   .hint { display: none; }
   .cause-list { gap: 4px; }
+}
+
+/* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track,
+  .live-dot,
+  .sound-btn.pending,
+  .loading-mask,
+  .country-card {
+    animation: none !important;
+  }
+  .news-ticker, .slogan, .stats-panel, .top-right, .hint,
+  .intro-title, .intro-title h1, .country-card, .cause-bar i,
+  .lang-switch button, .sound-btn, .top-row, .expand-toggle, .method-toggle {
+    transition: none !important;
+  }
 }
