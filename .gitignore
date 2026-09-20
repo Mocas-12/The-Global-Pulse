@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Playwright 本地产物
+test-results
+playwright-report
