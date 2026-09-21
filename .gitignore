@@ -25,3 +25,6 @@ dist-ssr
 # Playwright 本地产物
 test-results
 playwright-report
+
+# 本地演示产物
+pulse-comparison.png
