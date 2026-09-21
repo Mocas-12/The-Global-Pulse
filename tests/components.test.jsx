@@ -105,6 +105,21 @@ describe('StatsPanel 数据面板', () => {
     fireEvent.mouseLeave(row)
     expect(onHoverCountry).toHaveBeenLastCalledWith(null)
   })
+
+  it('实况模式: 死因推演与趣闻行正常显示', () => {
+    render(<StatsPanel snap={SNAPSHOT} lang="zh" instant onHoverCountry={noop} onSelectCountry={noop} />)
+    expect(document.querySelector('.cause-list')).toBeTruthy()
+    expect(document.querySelector('.fun-rows')).toBeTruthy()
+    expect(document.querySelector('.live-label').textContent).toBe('推演 LIVE')
+  })
+
+  it('回放模式: 隐藏死因推演与趣闻行(现代估计不可回放), 保留出生排名', () => {
+    render(<StatsPanel snap={SNAPSHOT} lang="zh" instant viewYear={1950} onHoverCountry={noop} onSelectCountry={noop} />)
+    expect(document.querySelector('.cause-list')).toBeNull()
+    expect(document.querySelector('.fun-rows')).toBeNull()
+    expect(document.querySelector('.top-list')).toBeTruthy()
+    expect(document.querySelector('.live-label').textContent).toBe('回放 1950')
+  })
 })
 
 describe('CountryCard 国家详情卡', () => {

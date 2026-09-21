@@ -204,21 +204,26 @@ export function StatsPanel({ snap, lang, instant, viewYear, onHoverCountry, onSe
         </div>
       </div>
 
-      <div className="divider m-hide" />
+      {/* 死因结构与香烟/毒品为现代估计, 历史上不可得 — 回放时诚实隐藏 */}
+      {viewYear == null && (
+        <>
+          <div className="divider m-hide" />
 
-      <div className="section-title m-hide">{t.health}</div>
-      <div className="cause-list m-hide">
-        {visibleCauses.map((c) => (
-          <div className="cause-row" key={c.key}>
-            <span className="cause-name">{lang === 'en' ? c.en : lang === 'ja' ? c.ja : c.zh}</span>
-            <span className="cause-num">-{compact(c.n)}</span>
-            <span className="cause-bar"><i style={{ width: `${(c.n / maxCause) * 100}%` }} /></span>
+          <div className="section-title m-hide">{t.health}</div>
+          <div className="cause-list m-hide">
+            {visibleCauses.map((c) => (
+              <div className="cause-row" key={c.key}>
+                <span className="cause-name">{lang === 'en' ? c.en : lang === 'ja' ? c.ja : c.zh}</span>
+                <span className="cause-num">-{compact(c.n)}</span>
+                <span className="cause-bar"><i style={{ width: `${(c.n / maxCause) * 100}%` }} /></span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <button className="expand-toggle m-hide" onClick={() => setShowAllCauses((v) => !v)}>
-        {showAllCauses ? t.showLess : t.showAll}
-      </button>
+          <button className="expand-toggle m-hide" onClick={() => setShowAllCauses((v) => !v)}>
+            {showAllCauses ? t.showLess : t.showAll}
+          </button>
+        </>
+      )}
 
       <div className="section-title m-hide">{t.topBirths}</div>
       <div className="top-list m-hide">
@@ -234,16 +239,18 @@ export function StatsPanel({ snap, lang, instant, viewYear, onHoverCountry, onSe
         ))}
       </div>
 
-      <div className="fun-rows m-hide">
-        <div className="fun-row">
-          <span className="fun-name">{t.cigarettes}</span>
-          <span className="fun-num">{compact(cig)}</span>
+      {viewYear == null && (
+        <div className="fun-rows m-hide">
+          <div className="fun-row">
+            <span className="fun-name">{t.cigarettes}</span>
+            <span className="fun-num">{compact(cig)}</span>
+          </div>
+          <div className="fun-row">
+            <span className="fun-name">{t.drugMoney}</span>
+            <span className="fun-num">${compact(drug)}</span>
+          </div>
         </div>
-        <div className="fun-row">
-          <span className="fun-name">{t.drugMoney}</span>
-          <span className="fun-num">${compact(drug)}</span>
-        </div>
-      </div>
+      )}
 
       <button className="method-toggle m-hide" onClick={() => setShowMethod((v) => !v)}>
         {t.methodTitle} {showMethod ? '▴' : '▾'}
