@@ -4,6 +4,7 @@
 // three/globe.gl 等重型依赖经 globeScene 动态加载, 首屏只渲染轻量外壳
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { worldEngine, DEATH_CAUSES, REFERENCE_FACTS } from './engine/worldEngine'
+import { scaleAnalogy } from './humanize'
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
@@ -120,7 +121,7 @@ export function RollingNumber({ value, className, format, instant }) {
 }
 
 // ————————————————————————————— 左侧主面板 —————————————————————————————
-export function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountry }) {
+export function StatsPanel({ snap, lang, instant, viewYear, onHoverCountry, onSelectCountry }) {
   const t = T[lang]
   const [sessionStart] = useState(() => Date.now())
   const [showAllCauses, setShowAllCauses] = useState(false)
@@ -135,15 +136,18 @@ export function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountr
   const drug = (REFERENCE_FACTS.illegalDrugsUSDPerYear / 31557600) * (snap.daySec || 0)
   const topBirths = worldEngine.topByBirths(5)
   // 「自你打开本页」: 纯前端会话计数, 精确值(由真实速率积分而来)
+  // 回放模式下仍使用实时速率(引擎在快照中单独携带), 与回放年份无关
   const sessionSec = Math.max(0, (snap.at - sessionStart) / 1000)
-  const sessB = Math.floor(sessionSec * snap.birthsPerSec)
-  const sessD = Math.floor(sessionSec * snap.deathsPerSec)
+  const sessB = Math.floor(sessionSec * snap.liveBirthsPerSec)
+  const sessD = Math.floor(sessionSec * snap.liveDeathsPerSec)
   const compact = useCallback((v) => fmtCompact(v, lang), [lang])
   return (
     <div className={`panel stats-panel ${expanded ? 'expanded' : ''}`}>
       <div className="panel-head">
         <span className="live-dot" />
-        <span className="live-label">{t.projection}</span>
+        <span className={`live-label ${viewYear != null ? 'replay' : ''}`}>
+          {viewYear != null ? `${t.timeBadge} ${viewYear}` : t.projection}
+        </span>
         <span className="clock">{clockText()}</span>
         <button
           className="panel-toggle"
@@ -175,6 +179,10 @@ export function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountr
             <span className="session-cap">{t.deathsLabel}</span>
           </div>
         </div>
+        {(() => {
+          const word = scaleAnalogy(sessB - sessD, t)
+          return word ? <div className="scale-line">{t.scaleLabel} {word}</div> : null
+        })()}
       </div>
 
       <div className="stat-grid m-hide">
@@ -264,11 +272,36 @@ export function StatsPanel({ snap, lang, instant, onHoverCountry, onSelectCountr
 export function CountryCard({ detail, lang, onClose }) {
   const t = T[lang]
   const c = detail
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef(null)
+  const share = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}?country=${c.iso3}&lang=${lang}`
+    const done = () => {
+      setCopied(true)
+      clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 1600)
+    }
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(done, done)
+    } else {
+      const ta = document.createElement('textarea')
+      ta.value = url
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch { /* noop */ }
+      ta.remove()
+      done()
+    }
+  }, [c.iso3, lang])
+  useEffect(() => () => clearTimeout(copyTimer.current), [])
   return (
     <div className="panel country-card" onClick={(e) => e.stopPropagation()}>
       <div className="card-head">
         <span className="card-flag">{c.rank <= 3 ? '★' : '●'}</span>
         <span className="card-name">{lang === 'en' ? c.name.en : lang === 'ja' ? (c.name.ja || c.name.en) : (c.name.zh || c.name.en)}</span>
+        <button className="card-share" onClick={share} title={copied ? t.copied : t.share} aria-label={copied ? t.copied : t.share}>
+          {copied ? '✓' : '⧉'}
+        </button>
         <button className="card-close" onClick={onClose} aria-label={t.close}>✕</button>
       </div>
       <div className="card-grid">
@@ -310,14 +343,63 @@ export function CountryCard({ detail, lang, onClose }) {
   )
 }
 
+// ————————————————————————————— 时间轴(回放 1950 → 今天) —————————————————————————————
+export function TimeAxis({ lang, viewYear, onChange, seriesRange }) {
+  const t = T[lang]
+  const [playing, setPlaying] = useState(false)
+  const [lo, hi] = seriesRange
+  useEffect(() => {
+    if (!playing) return undefined
+    const iv = setInterval(() => {
+      const next = Math.min(hi, (viewYear ?? lo) + 1)
+      onChange(next)
+      if (next >= hi) setPlaying(false)
+    }, 260)
+    return () => clearInterval(iv)
+  }, [playing, viewYear, lo, hi, onChange])
+  return (
+    <div className="time-axis">
+      <button
+        className="ta-play"
+        onClick={() => {
+          if (viewYear == null) onChange(lo) // 从实况进入回放, 先落到起点
+          setPlaying((p) => !p)
+        }}
+        title={playing ? t.timePause : t.timePlay}
+        aria-label={playing ? t.timePause : t.timePlay}
+      >
+        {playing ? '⏸' : '▶'}
+      </button>
+      <input
+        type="range"
+        min={lo}
+        max={hi}
+        value={viewYear ?? hi}
+        onChange={(e) => { setPlaying(false); onChange(Number(e.target.value)) }}
+        aria-label={t.timePlay}
+      />
+      <span className="ta-year">{viewYear ?? 'LIVE'}</span>
+      <button
+        className="ta-now"
+        onClick={() => { setPlaying(false); onChange(null) }}
+        title={t.timeNow}
+      >
+        {t.timeNow}
+      </button>
+    </div>
+  )
+}
+
 // ————————————————————————————— 主应用 —————————————————————————————
 export default function App() {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
   const introAudioRef = useRef(false) // 开场飞入期间为 true, 首次解锁音频时据此播放接近音
   const [lang, setLang] = useState(() => {
-    // 默认中文; 手动切换后记忆(localStorage)
+    // 分享链接的 ?lang= 优先; 其次本地记忆; 默认中文
     try {
+      const fromUrl = new URLSearchParams(window.location.search).get('lang')
+      if (fromUrl === 'zh' || fromUrl === 'en' || fromUrl === 'ja') return fromUrl
       const saved = localStorage.getItem('tgp-lang')
       if (saved === 'zh' || saved === 'en' || saved === 'ja') return saved
     } catch { /* noop */ }
@@ -339,7 +421,22 @@ export default function App() {
   useEffect(() => { reducedRef.current = reducedMotion }, [reducedMotion])
 
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
-  const [selectedIso, setSelectedIso] = useState(null)
+  const [selectedIso, setSelectedIso] = useState(() => {
+    // 分享链接: ?country=ISO3 启动即选中并飞往
+    try {
+      const c = new URLSearchParams(window.location.search).get('country')
+      if (c && /^[A-Za-z]{3}$/.test(c)) return c.toUpperCase()
+    } catch { /* noop */ }
+    return null
+  })
+  const selectedIsoRef = useRef(selectedIso)
+  const [seriesRange, setSeriesRange] = useState(null)
+  const [viewYear, setViewYearState] = useState(null)
+  const changeViewYear = useCallback((y) => {
+    setViewYearState(y)
+    worldEngine.setViewYear(y)
+  }, [])
+  useEffect(() => { selectedIsoRef.current = selectedIso }, [selectedIso])
   const [geoLoaded, setGeoLoaded] = useState(false)
   const [geoError, setGeoError] = useState(false)
   const [geoAttempt, setGeoAttempt] = useState(0)
@@ -408,6 +505,30 @@ export default function App() {
     return () => { cancelled = true }
   }, [geoAttempt])
 
+  // 城市点位 + UN 历史序列: 与国界并行异步加载, 失败各自静默降级
+  useEffect(() => {
+    fetch(`${BASE}datasets/populatedPlaces.json`)
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json() })
+      .then((list) => { if (list) worldEngine.setPlaces(list) })
+      .catch(() => {})
+    fetch(`${BASE}datasets/unSeries.json`)
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json() })
+      .then((data) => {
+        if (!data) return
+        worldEngine.setSeries(data)
+        setSeriesRange(worldEngine.seriesRange())
+      })
+      .catch(() => {})
+  }, [])
+
+  // 状态写入分享链接(不产生浏览历史)
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (selectedIso) params.set('country', selectedIso)
+    params.set('lang', lang)
+    window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+  }, [selectedIso, lang])
+
   // 地球场景: 动态加载(three/globe.gl 进入异步 chunk), 与数据下载并行
   useEffect(() => {
     if (!geoLoaded || !containerRef.current) return undefined
@@ -435,6 +556,8 @@ export default function App() {
       }
       sceneRef.current = handle
       handle.setMobile(isMobileRef.current)
+      // 分享链接带 ?country= 启动: 场景就绪后补飞选中
+      if (selectedIsoRef.current) handle.setSelected(selectedIsoRef.current)
     })
     return () => {
       disposed = true
@@ -510,11 +633,16 @@ export default function App() {
         snap={snap}
         lang={lang}
         instant={instant}
+        viewYear={viewYear}
         onHoverCountry={(iso) => sceneRef.current?.setHover(iso)}
         onSelectCountry={(iso) => setSelectedIso(iso)}
       />
 
       {detail && <CountryCard detail={detail} lang={lang} onClose={() => setSelectedIso(null)} />}
+
+      {seriesRange && (
+        <TimeAxis lang={lang} viewYear={viewYear} onChange={changeViewYear} seriesRange={seriesRange} />
+      )}
 
       <div className="top-right">
         <div className="lang-switch">
@@ -534,7 +662,9 @@ export default function App() {
         </button>
       </div>
 
-      <div className="hint">{soundOn && !audioReady ? t.soundPendingHint : t.clickHint}</div>
+      <div className="hint">
+        {viewYear != null ? t.timeHint : soundOn && !audioReady ? t.soundPendingHint : t.clickHint}
+      </div>
     </div>
   )
 }

@@ -2,10 +2,27 @@
 import { render, fireEvent, cleanup } from '@testing-library/react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { NewsTicker, RollingNumber, StatsPanel, CountryCard } from '../src/App'
+import { scaleAnalogy } from '../src/humanize'
 import ErrorBoundary from '../src/ErrorBoundary'
 import { WorldEngine } from '../src/engine/worldEngine'
 
 afterEach(cleanup)
+
+describe('scaleAnalogy 会话规模换算', () => {
+  const t = {
+    classroom: '一间教室', school: '一所学校', cruise: '一艘大型邮轮',
+    stadium: '一座体育场', cityMillion: '一座百万人口城市',
+  }
+  it('阶梯: 从小到大取第一个够到的档位, <30 返回 null', () => {
+    expect(scaleAnalogy(10, t)).toBeNull()
+    expect(scaleAnalogy(30, t)).toBe('一间教室')
+    expect(scaleAnalogy(799, t)).toBe('一间教室')
+    expect(scaleAnalogy(800, t)).toBe('一所学校')
+    expect(scaleAnalogy(5000, t)).toBe('一艘大型邮轮')
+    expect(scaleAnalogy(50000, t)).toBe('一座体育场')
+    expect(scaleAnalogy(1e6, t)).toBe('一座百万人口城市')
+  })
+})
 
 const SNAPSHOT = {
   at: Date.now(),

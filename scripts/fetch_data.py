@@ -140,3 +140,101 @@ for k in ('CHN', 'IND', 'USA', 'JPN'):
         r = out[k]
         est_births = r['population'] * (r['birthRate'] or 0) / 1000 / 86400 / 365.25 if r['birthRate'] else 0
         print(k, r['population'], 'births/day~', round(est_births))
+
+# ---------- 3. Populated places (pulse clustering weights) ----------
+print('== Downloading populated places (Natural Earth 10m) ==')
+PLACES_URLS = [
+    'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson',
+    'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_10m_populated_places_simple.geojson',
+]
+places_raw = None
+for u in PLACES_URLS:
+    try:
+        places_raw = http_get(u)
+        print('OK', u, len(places_raw) // 1024, 'KB')
+        break
+    except Exception as e:  # noqa: BLE001
+        print('FAIL', u, e)
+if places_raw is not None:
+    pf = json.loads(places_raw.decode('utf-8'))
+    ISO_ALIAS = {'KOS': 'XKX'}
+    rows = []
+    for f in pf.get('features', []):
+        p = f.get('properties') or {}
+        iso = p.get('adm0_a3') or p.get('adm0_a3_us') or ''
+        iso = ISO_ALIAS.get(iso, iso)
+        pop = p.get('pop_max') or p.get('pop_other') or 0
+        geom = f.get('geometry') or {}
+        coords = (geom.get('coordinates') or [None, None])[:2]
+        if iso and pop and isinstance(coords[0], (int, float)):
+            rows.append([iso, round(coords[0], 2), round(coords[1], 2), float(pop)])
+    rows.sort(key=lambda r: -r[3])
+    out_places = os.path.join(ROOT, 'public', 'datasets', 'populatedPlaces.json')
+    with open(out_places, 'w', encoding='utf-8') as fh:
+        json.dump(rows, fh, ensure_ascii=False, separators=(',', ':'))
+    print('wrote', out_places, round(os.path.getsize(out_places) / 1024, 1), 'KB,', len(rows), 'cities')
+else:
+    print('WARN: populated places unavailable; pulse clustering disabled')
+
+# ---------- 4. UN WPP historical series 1950-2023 (time axis, via OWID) ----------
+print('== Downloading UN WPP historical series (OWID grapher) ==')
+IND2 = {
+    'population': 'p',
+    'crude-birth-rate': 'b',
+    'crude-death-rate': 'd',
+}
+YEAR_MIN, YEAR_MAX = 1950, 2023
+# 只保留本项目会渲染的 ISO3(世界银行覆盖 + Natural Earth 要素), 减小体积
+ne_isos = set()
+for f in geo.get('features', []):
+    p = f.get('properties') or {}
+    iso = p.get('ISO_A3_EH') if p.get('ISO_A3_EH') not in (None, '-99') else p.get('ADM0_A3')
+    if iso:
+        ne_isos.add(ISO_ALIAS.get(iso, iso))
+valid_iso = set(out.keys()) | ne_isos
+series = {}
+for slug, kind in IND2.items():
+    print('== OWID', slug, '==')
+    url = f'https://ourworldindata.org/grapher/{slug}.csv'
+    raw = http_get(url).decode('utf-8')
+    lines = raw.splitlines()
+    header = lines[0].split(',')
+    code_i, year_i = header.index('Code'), header.index('Year')
+    val_i = 3  # 第四列为数值
+    n = 0
+    for line in lines[1:]:
+        cols = line.split(',')
+        if len(cols) <= val_i:
+            continue
+        code = cols[code_i]
+        if code == 'OWID_KOS':
+            code = 'XKX'
+        if code not in valid_iso:
+            continue
+        try:
+            year = int(cols[year_i])
+            val = float(cols[val_i])
+        except ValueError:
+            continue
+        if year < YEAR_MIN or year > YEAR_MAX:
+            continue
+        rec = series.setdefault(code, {})
+        arr = rec.setdefault(kind, [])
+        if not arr or arr[-1][0] < year:
+            arr.append([year, round(val, 3)])
+            n += 1
+    print('  rows kept:', n)
+
+# population CSV 的数值是整数, 统一成整数减体积
+for rec in series.values():
+    if rec.get('p'):
+        rec['p'] = [[y, int(round(v))] for y, v in rec['p']]
+
+out_series = os.path.join(ROOT, 'public', 'datasets', 'unSeries.json')
+with open(out_series, 'w', encoding='utf-8') as fh:
+    json.dump(series, fh, ensure_ascii=False, separators=(',', ':'))
+print('wrote', out_series, round(os.path.getsize(out_series) / 1024, 1), 'KB,', len(series), 'countries')
+chn = series.get('CHN', {})
+if chn.get('p') and chn.get('b'):
+    y0 = chn['p'][0]
+    print('sanity CHN:', y0[0], y0[1], 'cbr', chn['b'][0])

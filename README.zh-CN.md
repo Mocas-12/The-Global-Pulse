@@ -45,7 +45,9 @@
 - ☀️ **实时昼夜晨昏线** — 由真实 UTC 时间推算太阳直射点，自定义着色器逐帧渲染昼夜过渡、晨昏暖橙余晖与海面太阳耀斑，此刻哪里是白天一目了然
 - 🗺️ **真实国界** — Natural Earth 110m 行政边界，177 个国家/地区精确轮廓渲染，人口对数淡着色、悬停高亮浮起
 - 📊 **真实数据** — 世界银行 2024 年人口 / 粗出生率 / 粗死亡率（SP.POP.TOTL / SP.DYN.CBRT.IN / SP.DYN.CDRT.IN），覆盖 217 个经济体
-- 💓 **实时推演** — 按各国真实比率逐秒推演全球出生 / 死亡 / 净增长，脉冲以闪光 + 涟漪冲击波的形式落点在**真实国境内**
+- 💓 **实时推演** — 按各国真实比率逐秒推演全球出生 / 死亡 / 净增长，脉冲以闪光 + 涟漪冲击波的形式落点在**真实国境内**，并向真实人口稠密的城市聚拢
+- ⏳ **时间轴回放** — 基于 UN WPP 真实历史序列（1950 → 2024，经 Our World in Data 整理），拖动或自动播放：世界人口、出生/死亡率、脉冲速率与国家出生排名随真实历史变化，看婴儿潮与光带迁移
+- 🔗 **人性化细节** — "自你打开本页"净增数自动换算人类尺度（教室 / 学校 / 邮轮 / 城市）；选中国家可一键复制分享链接，打开即飞往该国
 - 🎬 **电影化开场** — 深空相机飞入 + 主题标题渐显谢幕 + 面板失焦错峰入场；程序化闪烁星空与胶片颗粒氛围
 - 🗺️ **国家详情** — 点击任意国家相机飞往、高亮浮起，查看人口、排名、今日出生/死亡、出生/死亡率、全球占比（数据年份标注）
 - 🩺 **全球健康面板** — 心血管疾病、癌症、烟草、5 岁以下儿童死亡等 12 类年度死亡推演计数
@@ -75,9 +77,9 @@ flowchart LR
     C --> D[📊 面板与快讯<br/>出生 · 死亡 · 死因 · 国家详情]
 ```
 
-1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON，并拉取世界银行三项指标 2015 年以来全部数据、取各国最新值
+1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON 与城市点位，并拉取世界银行三项指标 2015 年以来全部数据、取各国最新值，另取 UN WPP 历史序列（1950–2023，经 Our World in Data）
 2. **实时推演**：以世界银行年度粗出生率 / 死亡率为速率，从当日零点 / 年初起积分得到"今日 / 今年"数字；世界人口基数取各国 2024 年估计值之和（约 82.1 亿）
-3. **落点采样**：脉冲光点按各国出生 / 死亡率加权，随机采样落在真实国境多边形内部
+3. **落点采样**：脉冲光点按各国出生 / 死亡率加权选国，再在国家内按城市人口加权选点、高斯散布（溢出国界自动收缩半径重试），并保留两成均匀采样代表乡村人口
 4. **渲染交互**：globe.gl + three.js 按需异步加载（`src/engine/globeScene.js`，与数据下载并行）；`src/engine/globeFX.js` 提供自定义着色器 —— 依低精度天文算法（±0.01°）由 UTC 实时推算太阳直射点，逐帧混合昼/夜贴图、海面高光与大气散射；白天贴图先到先渲染，夜灯/云层就绪后渐入；点击国家相机飞往并弹出详情卡片
 5. **合成音效**：Web Audio 实时合成开场接近音与心跳环境音景，无任何音频文件
 
@@ -108,6 +110,8 @@ The-Global-Pulse/
 ├── tests/components.test.jsx # 组件单测（翻牌数字 / 快讯 / 面板 / 错误边界）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国界（由脚本生成）
+    ├── datasets/populatedPlaces.json # 城市点位（脉冲聚类权重，由脚本生成）
+    ├── datasets/unSeries.json # UN WPP 1950–2023 历史序列（由脚本生成）
     ├── og-card.png          # 分享卡片图
     └── img/                 # NASA 地球贴图（WebP）：昼 4K / 夜景灯光 / 水面遮罩 / 云层
 ```
@@ -138,6 +142,7 @@ npm run dev        # 开发：http://localhost:5173
 ## 🔢 数据与口径
 
 - 页面上的"今日 / 今年"数字是**模型推演值**：以世界银行年度率为速率、从当日零点 / 年初起积分
+- 时间轴回放（1950 → 2024）使用 **UN WPP 真实历史估计**（经 Our World in Data 整理）：回放时世界人口与出生/死速率为该年真实估计值，"今日"按该年速率与当日时钟比例折算；国家详情卡仍为世界银行 2024 数据
 - 世界人口基数取各国 2024 年估计值之和（约 82.1 亿），与联合国世界人口时钟量级一致
 - 死亡原因年度基数来自 WHO Global Health Estimates、UN IGME、UNAIDS、WHO、UNODC 等公开估计，数值为近似值，仅用于可视化展示
 - 所有实时数字均为基于权威年度统计的推演，不代表逐秒真实统计
@@ -172,7 +177,8 @@ npm run dev        # 开发：http://localhost:5173
 ## 📚 数据来源
 
 - [World Bank Open Data](https://data.worldbank.org/) — 人口与粗出生/死亡率
-- [Natural Earth](https://www.naturalearthdata.com/) — 行政边界
+- [UN World Population Prospects 2024 (via Our World in Data)](https://ourworldindata.org/population) — 1950–2023 历史人口与出生/死亡率序列
+- [Natural Earth](https://www.naturalearthdata.com/) — 行政边界与城市点位
 - [NASA Blue Marble Next Generation](https://visibleearth.nasa.gov/collection/1484/blue-marble-next-generation) — 昼面地表贴图（公版）
 - [NASA Black Marble — Earth at Night](https://earthobservatory.nasa.gov/features/NightLights) — 夜面城市灯光贴图（公版）
 - [WHO / UN IGME / UNAIDS / UNODC](https://www.who.int/data/global-health-estimates) — 死亡原因估计

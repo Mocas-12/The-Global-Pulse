@@ -315,12 +315,30 @@ body {
   color: var(--birth);
   font-size: 11px;
   letter-spacing: 0.22em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.live-label.replay {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
 }
 .clock {
   margin-left: auto;
   font-size: 11px;
   color: var(--text-dim);
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* 回放提示: 金色弱化小字 */
+.year-badge {
+  font-size: 10px;
+  color: rgba(251, 191, 36, 0.6);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
 }
 
 .big-stat { margin-bottom: 12px; }
@@ -384,6 +402,13 @@ body {
   font-size: 9.5px;
   color: var(--text-dim);
   letter-spacing: 0.08em;
+}
+.scale-line {
+  margin-top: 5px;
+  font-size: 9.5px;
+  color: rgba(148, 197, 233, 0.6);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-grid {
@@ -605,6 +630,20 @@ body {
   transition: color 0.15s;
 }
 .card-close:hover { color: #fff; }
+.card-share {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.card-share:hover { color: var(--cyan); }
+.card-share.copied { color: var(--birth); }
+.card-share + .card-close { margin-left: 0; }
 
 .card-grid {
   display: grid;
@@ -704,6 +743,62 @@ body {
   pointer-events: none;
 }
 
+/* ————————————————— 时间轴(回放 1950 → 今天) ————————————————— */
+.time-axis {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+.time-axis input[type="range"] {
+  width: min(280px, 34vw);
+  accent-color: var(--cyan);
+  cursor: pointer;
+  margin: 0;
+}
+.ta-play {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+}
+.ta-year {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f4faff;
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.ta-now {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ta-now:hover { color: var(--cyan-soft); }
+
 /* ————————————————— 移动端 ————————————————— */
 @media (max-width: 768px) {
   .slogan {
@@ -752,6 +847,15 @@ body {
   .top-right { top: 42px; right: 10px; }
   .hint { display: none; }
   .cause-list { gap: 4px; }
+  .time-axis {
+    bottom: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(560px, 94vw);
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .time-axis input[type="range"] { width: auto; flex: 1; min-width: 0; }
 }
 
 /* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */

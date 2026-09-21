@@ -169,6 +169,37 @@ describe('采样与详情', () => {
     expect(e.samplePoint('NOPE')).toEqual({ lat: 0, lng: 0 })
   })
 
+  it('samplePoint 城市聚类: 落点始终在国境内, 且向大城市聚拢', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+    const e = new WorldEngine()
+    e.setFeatures([square('TST')])
+    e.setPlaces([['TST', 2, 2, 6e6], ['TST', 8, 8, 2e6]])
+    const f = e.featureByIso.get('TST')
+    let sumBig = 0
+    let sumSmall = 0
+    for (let i = 0; i < 1500; i++) {
+      const pt = e.samplePoint('TST')
+      expect(pointInGeometry(f.geometry, pt.lng, pt.lat)).toBe(true)
+      sumBig += Math.hypot(pt.lng - 2, pt.lat - 2)
+      sumSmall += Math.hypot(pt.lng - 8, pt.lat - 8)
+    }
+    expect(sumBig / 1500).toBeLessThan(sumSmall / 1500)
+  })
+
+  it('samplePoint 无城市点位时回退均匀采样', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+    const e = new WorldEngine()
+    e.setFeatures([square('TST')])
+    e.setPlaces([['OTH', 5, 5, 1e6]])
+    const f = e.featureByIso.get('TST')
+    for (let i = 0; i < 50; i++) {
+      const pt = e.samplePoint('TST')
+      expect(pointInGeometry(f.geometry, pt.lng, pt.lat)).toBe(true)
+    }
+  })
+
   it('countryDetail: 未知国家返回 null, 已知国家含占比字段', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
@@ -190,5 +221,59 @@ describe('采样与详情', () => {
     for (let i = 1; i < top.length; i++) {
       expect(top[i - 1].birthsPerSec).toBeGreaterThanOrEqual(top[i].birthsPerSec)
     }
+  })
+})
+
+describe('时间轴回放 setSeries / setViewYear', () => {
+  const SERIES = {
+    CHN: { p: [[1950, 5e8], [2000, 1.2e9]], b: [[1950, 40], [2000, 15]], d: [[1950, 20], [2000, 7]] },
+    IND: { p: [[1950, 3.5e8], [2000, 1.0e9]], b: [[1950, 45], [2000, 25]], d: [[1950, 25], [2000, 9]] },
+  }
+
+  it('回放 1975: 人口为线性插值, 速率按该年出生率折算', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+    const e = new WorldEngine()
+    e.setSeries(SERIES)
+    expect(e.seriesRange()).toEqual([1950, 2000])
+    e.setViewYear(1975)
+    const s = e.snapshot()
+    // CHN 1975 = 5e8 + (1.2e9 - 5e8)/2 = 8.5e8; IND = 3.5e8 + 3.25e8 = 6.75e8
+    expect(s.worldPopulation).toBe(8.5e8 + 6.75e8)
+    // 序列覆盖的国家按该年插值速率; 未覆盖国家保持实时速率
+    const cbr75 = (40 + 15) / 2
+    const cdr75 = (20 + 7) / 2
+    expect(e.countries.CHN.birthsPerSec).toBeCloseTo((8.5e8 * cbr75) / 1000 / 31557600, 8)
+    expect(e.countries.CHN.deathsPerSec).toBeCloseTo((8.5e8 * cdr75) / 1000 / 31557600, 8)
+    expect(e.countries.IND.birthsPerSec).toBeCloseTo((6.75e8 * 35) / 1000 / 31557600, 8)
+  })
+
+  it('回放边界年取端点值; 越界年钳制', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+    const e = new WorldEngine()
+    e.setSeries(SERIES)
+    e.setViewYear(1950)
+    expect(e.snapshot().worldPopulation).toBe(8.5e8)
+    e.setViewYear(2050) // 超出序列 -> 钳制到 2000
+    expect(e.snapshot().worldPopulation).toBe(2.2e9)
+  })
+
+  it('回到现在: 速率与世界人口恢复实时值; 会话速率字段始终实时', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+    const e = new WorldEngine()
+    const liveBps = e.snapshot().birthsPerSec
+    const liveSession = e.snapshot().liveBirthsPerSec
+    expect(liveSession).toBeCloseTo(liveBps, 15)
+    e.setSeries(SERIES)
+    e.setViewYear(1950)
+    const s = e.snapshot()
+    expect(s.birthsPerSec).not.toBeCloseTo(liveBps, 2)
+    expect(s.liveBirthsPerSec).toBeCloseTo(liveBps, 10) // 会话计数保持实时
+    e.setViewYear(null)
+    const back = e.snapshot()
+    expect(back.birthsPerSec).toBeCloseTo(liveBps, 12)
+    expect(back.worldPopulation).toBe(Math.floor(e.worldPopulation + back.yearSec * back.netPerSec))
   })
 })

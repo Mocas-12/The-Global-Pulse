@@ -100,6 +100,13 @@ export function pointInGeometry(geometry, x, y) {
   return false
 }
 
+// Box-Muller 高斯噪声
+function gauss(sigma) {
+  const u = 1 - Math.random()
+  const v = Math.random()
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sigma
+}
+
 export class WorldEngine {
   constructor() {
     this.countries = buildCountries()
@@ -115,10 +122,18 @@ export class WorldEngine {
     this._lastDInt = 0
     this._lastT = 0
     this._cur = null
+    this._placesByIso = new Map()
+    this._series = null
+    this._viewYear = null
+    this._worldPopOverride = null
     const n = new Date()
     this.yearStart = new Date(n.getFullYear(), 0, 1).getTime()
     this.dayStart = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()
+    this._liveBPS = 0
+    this._liveDPS = 0
     this._recomputeWorld()
+    this._liveBPS = this.birthsPerSec
+    this._liveDPS = this.deathsPerSec
   }
 
   _recomputeWorld() {
@@ -198,6 +213,100 @@ export class WorldEngine {
     return c.nameEn || c.nameZh || iso3
   }
 
+  // 注入城市点位([iso3, lng, lat, pop]): 脉冲落点向真实人口聚拢
+  setPlaces(list) {
+    const byIso = new Map()
+    for (const [iso, lng, lat, pop] of list || []) {
+      let bucket = byIso.get(iso)
+      if (!bucket) {
+        bucket = { items: [], cum: [], total: 0 }
+        byIso.set(iso, bucket)
+      }
+      bucket.items.push([lng, lat, pop])
+      bucket.total += pop
+      bucket.cum.push(bucket.total)
+    }
+    this._placesByIso = byIso
+  }
+
+  // 注入 UN 历史序列({ISO3: {p|b|d: [[year, val]...]}}): 时间轴回放数据
+  setSeries(data) {
+    this._series = data || null
+  }
+
+  seriesRange() {
+    let lo = Infinity
+    let hi = -Infinity
+    for (const rec of Object.values(this._series || {})) {
+      for (const kind of ['p', 'b', 'd']) {
+        const arr = rec[kind]
+        if (arr && arr.length) {
+          lo = Math.min(lo, arr[0][0])
+          hi = Math.max(hi, arr[arr.length - 1][0])
+        }
+      }
+    }
+    return lo === Infinity ? null : [lo, hi]
+  }
+
+  _seriesAt(iso3, kind, year) {
+    const arr = this._series?.[iso3]?.[kind]
+    if (!arr || !arr.length) return null
+    if (year <= arr[0][0]) return arr[0][1]
+    const last = arr[arr.length - 1]
+    if (year >= last[0]) return last[1]
+    for (let i = 1; i < arr.length; i++) {
+      const y1 = arr[i][0]
+      if (y1 >= year) {
+        const y0 = arr[i - 1][0]
+        const v0 = arr[i - 1][1]
+        return v0 + (arr[i][1] - v0) * ((year - y0) / (y1 - y0 || 1))
+      }
+    }
+    return last[1]
+  }
+
+  // null = 实时推演; 数字 = 回放指定年份(需先 setSeries 注入序列)
+  setViewYear(year) {
+    const y = year == null || !this._series ? null : Math.round(year)
+    if (y === this._viewYear) return
+    this._viewYear = y
+    this._applyModeRates()
+  }
+
+  _applyModeRates() {
+    const live = this._viewYear == null
+    let popSum = 0
+    for (const c of Object.values(this.countries)) {
+      if (live) {
+        c.birthsPerSec = (c.population * (c.birthRate || 0) / 1000) / SEC_PER_YEAR
+        c.deathsPerSec = (c.population * (c.deathRate || 0) / 1000) / SEC_PER_YEAR
+        popSum += c.population
+      } else {
+        const p = this._seriesAt(c.iso3, 'p', this._viewYear)
+        if (p != null) {
+          popSum += p
+          const cbr = this._seriesAt(c.iso3, 'b', this._viewYear)
+          const cdr = this._seriesAt(c.iso3, 'd', this._viewYear)
+          c.birthsPerSec = p * (cbr ?? 0) / 1000 / SEC_PER_YEAR
+          c.deathsPerSec = p * (cdr ?? 0) / 1000 / SEC_PER_YEAR
+        }
+        // 序列未覆盖的地区: 保留实时速率, 不计入回放总人口
+      }
+    }
+    this._worldPopOverride = live ? null : Math.round(popSum)
+    this._recomputeWorld()
+    if (live) {
+      // 会话计数始终基于实时速率
+      this._liveBPS = this.birthsPerSec
+      this._liveDPS = this.deathsPerSec
+    }
+    this._tick()
+    for (const fn of this._listeners) {
+      try { fn(this._cur) } catch { /* listener error ignored */ }
+    }
+  }
+
   _pick(list, cum, total) {
     const r = Math.random() * total
     let lo = 0, hi = cum.length - 1
@@ -212,10 +321,23 @@ export class WorldEngine {
   pickBirthCountry() { return this._pick(this._isoList, this._cumB, this._totalB) }
   pickDeathCountry() { return this._pick(this._isoList, this._cumD, this._totalD) }
 
-  // 在某国真实国境内随机取点(包围盒拒绝采样)
+  // 在某国真实国境内随机取点。
+  // 有城市点位时: 80% 按城市人口加权 + 高斯散布(溢出国界则缩小半径重试),
+  // 20% 保留均匀采样代表乡村人口。
   samplePoint(iso3) {
     const f = this.featureByIso.get(iso3)
     if (!f) return { lat: 0, lng: 0 }
+    const cl = this._placesByIso.get(iso3)
+    if (cl && cl.total > 0 && Math.random() < 0.8) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const [lng, lat, pop] = this._pickCity(cl)
+        const sigma = (0.12 + 1.5 * Math.sqrt(pop / 1e7)) * Math.pow(0.55, attempt)
+        const x = lng + gauss(sigma)
+        const y = lat + gauss(sigma)
+        if (pointInGeometry(f.geometry, x, y)) return { lat: y, lng: x }
+      }
+      return { lat: cl.items[0][1], lng: cl.items[0][0] }
+    }
     const [minX, minY, maxX, maxY] = f.__bbox
     for (let i = 0; i < 24; i++) {
       const x = minX + Math.random() * (maxX - minX)
@@ -223,6 +345,17 @@ export class WorldEngine {
       if (pointInGeometry(f.geometry, x, y)) return { lat: y, lng: x }
     }
     return { lat: f.__labelLat, lng: f.__labelLng }
+  }
+
+  _pickCity(bucket) {
+    const r = Math.random() * bucket.total
+    let lo = 0, hi = bucket.items.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (bucket.cum[mid] < r) lo = mid + 1
+      else hi = mid
+    }
+    return bucket.items[lo]
   }
 
   snapshot() {
@@ -239,6 +372,27 @@ export class WorldEngine {
     }
     const yearSec = Math.max(0, (now - this.yearStart) / 1000)
     const daySec = Math.max(0, (now - this.dayStart) / 1000)
+    if (this._viewYear != null && this._worldPopOverride != null) {
+      // 回放模式: "今年"=该年全年真实估计, "今日"=该年按当日时钟比例
+      const by = this.birthsPerSec * SEC_PER_YEAR
+      const dy = this.deathsPerSec * SEC_PER_YEAR
+      this._cur = {
+        at: now,
+        worldPopulation: this._worldPopOverride,
+        birthsYear: Math.floor(by),
+        deathsYear: Math.floor(dy),
+        birthsToday: Math.floor(by * daySec / 86400000),
+        deathsToday: Math.floor(dy * daySec / 86400000),
+        birthsPerSec: this.birthsPerSec,
+        deathsPerSec: this.deathsPerSec,
+        netPerSec: this.birthsPerSec - this.deathsPerSec,
+        liveBirthsPerSec: this._liveBPS,
+        liveDeathsPerSec: this._liveDPS,
+        yearSec,
+        daySec,
+      }
+      return this._cur
+    }
     this._cur = {
       at: now,
       worldPopulation: Math.floor(this.worldPopulation + yearSec * this.netPerSec),
@@ -249,6 +403,8 @@ export class WorldEngine {
       birthsPerSec: this.birthsPerSec,
       deathsPerSec: this.deathsPerSec,
       netPerSec: this.netPerSec,
+      liveBirthsPerSec: this._liveBPS || this.birthsPerSec,
+      liveDeathsPerSec: this._liveDPS || this.deathsPerSec,
       yearSec,
       daySec,
     }

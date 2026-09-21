@@ -44,6 +44,32 @@ test('移动端: 面板默认折叠且不遮挡地球', async ({ page }) => {
   await expect(panel).toHaveClass(/expanded/)
 })
 
+test('时间轴: 拨入回放世界人口随历史变化, 回到现在恢复', async ({ page }) => {
+  await page.goto(PATH)
+  const axis = page.locator('.time-axis')
+  await expect(axis).toBeVisible({ timeout: 30_000 })
+  await axis.locator('input[type=range]').fill('1950')
+  await expect(page.locator('.ta-year')).toHaveText('1950')
+  const v1950 = Number((await page.locator('.big-value').textContent()).replace(/,/g, ''))
+  expect(v1950).toBeGreaterThan(2_000_000_000)
+  expect(v1950).toBeLessThan(4_000_000_000)
+  await axis.locator('.ta-now').click()
+  await expect(page.locator('.ta-year')).toHaveText('LIVE')
+  const vLive = Number((await page.locator('.big-value').textContent()).replace(/,/g, ''))
+  expect(vLive).toBeGreaterThan(7_500_000_000)
+})
+
+test('分享链接: 选中国家写入 URL, 刷新后恢复', async ({ page }) => {
+  await page.goto(PATH)
+  await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
+  await page.locator('.top-row').first().click()
+  await expect(page.locator('.country-card')).toBeVisible()
+  await expect.poll(() => page.url()).toContain('country=')
+  await page.reload()
+  await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
+  await expect(page.locator('.country-card')).toBeVisible({ timeout: 30_000 })
+})
+
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'dev', '双挂载只发生在开发模式')
   await page.goto(PATH)
