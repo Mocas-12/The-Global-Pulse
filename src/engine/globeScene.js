@@ -207,9 +207,7 @@ export async function createGlobeScene(container, opts = {}) {
   spawn.head = 0
   spawn.ringHead = 0
 
-  const unPulse = worldEngine.onPulse((p) => {
-    spawn(p)
-  })
+  const unPulse = worldEngine.onPulse(spawn)
 
   // ——— 国家多边形着色: 人口对数 -> 淡填充, 让真实地表透出 ———
   let hoverIso = null

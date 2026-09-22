@@ -330,16 +330,6 @@ body {
   white-space: nowrap;
   flex-shrink: 0;
 }
-/* 回放提示: 金色弱化小字 */
-.year-badge {
-  font-size: 10px;
-  color: rgba(251, 191, 36, 0.6);
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px;
-}
 
 .big-stat { margin-bottom: 12px; }
 .big-label {
@@ -583,13 +573,6 @@ body {
 .method-box a { color: rgba(34, 211, 238, 0.75); text-decoration: none; margin-right: 10px; }
 .method-box a:hover { color: var(--cyan); text-shadow: 0 0 8px rgba(34, 211, 238, 0.4); }
 
-.data-note {
-  margin-top: 10px;
-  font-size: 9.5px;
-  color: rgba(148, 197, 233, 0.35);
-  letter-spacing: 0.05em;
-}
-
 /* ————————————————— 国家详情卡 ————————————————— */
 .country-card {
   position: fixed;
@@ -642,7 +625,6 @@ body {
   transition: color 0.15s;
 }
 .card-share:hover { color: var(--cyan); }
-.card-share.copied { color: var(--birth); }
 .card-share + .card-close { margin-left: 0; }
 
 .card-grid {

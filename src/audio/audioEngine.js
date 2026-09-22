@@ -30,10 +30,6 @@ export function setMuted(m) {
 
 export function isMuted() { return muted }
 
-export function audioDebug() {
-  return { hasCtx: !!ctx, state: ctx?.state ?? null, ambient: ambientRunning, muted }
-}
-
 function makeNoiseBuffer(c, seconds) {
   const len = Math.floor(c.sampleRate * seconds)
   const buf = c.createBuffer(1, len, c.sampleRate)

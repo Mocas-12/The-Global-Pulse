@@ -330,7 +330,7 @@ export class WorldEngine {
     const cl = this._placesByIso.get(iso3)
     if (cl && cl.total > 0 && Math.random() < 0.8) {
       for (let attempt = 0; attempt < 5; attempt++) {
-        const [lng, lat, pop] = this._pickCity(cl)
+        const [lng, lat, pop] = this._pick(cl.items, cl.cum, cl.total)
         const sigma = (0.12 + 1.5 * Math.sqrt(pop / 1e7)) * Math.pow(0.55, attempt)
         const x = lng + gauss(sigma)
         const y = lat + gauss(sigma)
@@ -345,17 +345,6 @@ export class WorldEngine {
       if (pointInGeometry(f.geometry, x, y)) return { lat: y, lng: x }
     }
     return { lat: f.__labelLat, lng: f.__labelLng }
-  }
-
-  _pickCity(bucket) {
-    const r = Math.random() * bucket.total
-    let lo = 0, hi = bucket.items.length - 1
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1
-      if (bucket.cum[mid] < r) lo = mid + 1
-      else hi = mid
-    }
-    return bucket.items[lo]
   }
 
   snapshot() {
