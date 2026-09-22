@@ -351,7 +351,7 @@ export function CountryCard({ detail, lang, onClose }) {
 }
 
 // ————————————————————————————— 时间轴(回放 1950 → 今天) —————————————————————————————
-export function TimeAxis({ lang, viewYear, onChange, seriesRange }) {
+function TimeAxis({ lang, viewYear, onChange, seriesRange }) {
   const t = T[lang]
   const [playing, setPlaying] = useState(false)
   const [lo, hi] = seriesRange

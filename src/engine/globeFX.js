@@ -246,7 +246,7 @@ export function createStarfield({ count = 6500, radius = 2600, pixelRatio = 1 } 
 }
 
 // ————————————————————————— 涟漪冲击波(出生/死亡) —————————————————————————
-export function makeRingTexture(size = 128) {
+function makeRingTexture(size = 128) {
   const c = document.createElement('canvas')
   c.width = c.height = size
   const g = c.getContext('2d')

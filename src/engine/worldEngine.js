@@ -129,8 +129,6 @@ export class WorldEngine {
     const n = new Date()
     this.yearStart = new Date(n.getFullYear(), 0, 1).getTime()
     this.dayStart = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime()
-    this._liveBPS = 0
-    this._liveDPS = 0
     this._recomputeWorld()
     this._liveBPS = this.birthsPerSec
     this._liveDPS = this.deathsPerSec
