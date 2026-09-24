@@ -185,7 +185,7 @@ npm run dev        # Dev: http://localhost:5173
 
 ## 📄 License
 
-This project is for learning and demonstration purposes and has no open-source license; please fork it if you want to reuse it.
+This project is open-sourced under the [MIT License](./LICENSE) — free to use, modify, distribute, and commercialize, as long as the copyright notice is retained.
 
 ---
 
