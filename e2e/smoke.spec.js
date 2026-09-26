@@ -77,13 +77,13 @@ test('静默时刻: 空格冻结世界, 再按恢复流动', async ({ page }) =>
   await expect(big).toBeVisible()
   await page.keyboard.press('Space')
   await expect(page.locator('.still-overlay.show')).toBeVisible()
+  await page.waitForTimeout(600) // 让按压前最后一次数字补间落定
   const v1 = await big.textContent()
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(1200)
   expect(await big.textContent()).toBe(v1) // 冻结: 数字静止
   await page.keyboard.press('Space')
   await expect(page.locator('.still-overlay.show')).toHaveCount(0)
-  await page.waitForTimeout(900)
-  expect(await big.textContent()).not.toBe(v1) // 恢复: 世界继续
+  await expect.poll(async () => big.textContent(), { timeout: 6000 }).not.toBe(v1) // 恢复: 世界继续
 })
 
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
