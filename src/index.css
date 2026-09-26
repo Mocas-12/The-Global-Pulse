@@ -238,6 +238,8 @@ body {
   white-space: nowrap;
   animation: ticker-scroll 46s linear infinite;
   will-change: transform;
+  flex-shrink: 0;      /* 长内容不允许被父级 flex 挤压(挤压会造成文字互相叠压) */
+  min-width: max-content;
 }
 .ticker-item {
   padding: 0 2.2em;

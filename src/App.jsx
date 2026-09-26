@@ -729,8 +729,9 @@ export default function App() {
         <p>{t.subtitle}</p>
       </div>
 
-      <NewsTicker key={lang} lang={lang} />
-      <SloganLine key={lang} lang={lang} />
+      {/* key 前缀区分: 相邻兄弟同 key 会让 React 19 的 keyed 协调错乱(实测每秒累积一个实例) */}
+      <NewsTicker key={`ticker-${lang}`} lang={lang} />
+      <SloganLine key={`slogan-${lang}`} lang={lang} />
 
       <StatsPanel
         snap={snap}

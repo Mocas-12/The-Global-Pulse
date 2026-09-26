@@ -17,6 +17,9 @@ test('冒烟: 地球就绪 + 面板入场 + 无未捕获异常', async ({ page }
   await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
   await expect(page.locator('.globe-container canvas')).toBeVisible()
   await expect(page.locator('.big-value')).toBeVisible()
+  // 快讯唯一性: 相邻兄弟同 key 曾导致每秒累积一个实例(React 19 keyed 协调错乱)
+  await page.waitForTimeout(4000)
+  await expect(page.locator('.news-ticker')).toHaveCount(1)
   // 静置 3 秒, 捕捉延迟暴露的渲染循环异常
   await page.waitForTimeout(3000)
   expect(errors, '未捕获的页面异常').toEqual([])
