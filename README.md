@@ -17,7 +17,7 @@
 
 **[🌐 Live Preview (GitHub Pages)](https://mocas-12.github.io/The-Global-Pulse/)**
 
-**English** | [简体中文](./README.zh-CN.md)
+**English** | [简体中文](./README.zh-CN.md) | [日本語](./README.ja-JP.md)
 
 *Open the page → watch the pulse of the Earth rise and fall → click any country for real-time details*
 

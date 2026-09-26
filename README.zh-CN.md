@@ -17,7 +17,7 @@
 
 **[🌐 在线访问（GitHub Pages）](https://mocas-12.github.io/The-Global-Pulse/)**
 
-[English](./README.md) | **简体中文**
+[English](./README.md) | **简体中文** | [日本語](./README.ja-JP.md)
 
 *打开页面 → 观看地球脉搏起伏 → 点击任意国家查看实时详情*
 
