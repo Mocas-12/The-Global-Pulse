@@ -268,6 +268,11 @@ body {
   pointer-events: none;
   white-space: nowrap;
 }
+.slogan-text {
+  display: inline-block;
+  transition: opacity 1.7s ease;
+}
+.slogan-text.faded { opacity: 0; }
 
 /* ————————————————— 左侧统计面板 ————————————————— */
 .stats-panel {
@@ -781,6 +786,63 @@ body {
 }
 .ta-now:hover { color: var(--cyan-soft); }
 
+/* ————————————————— 静默时刻(空格) ————————————————— */
+.still-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: radial-gradient(ellipse 62% 50% at 50% 50%, rgba(1, 3, 10, 0.62) 0%, rgba(1, 3, 10, 0.94) 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+.still-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.still-line {
+  font-size: clamp(15px, 2.1vw, 21px);
+  font-weight: 300;
+  letter-spacing: 0.34em;
+  padding-left: 0.34em;
+  color: #dfeffc;
+  text-align: center;
+  text-shadow: 0 0 34px rgba(88, 186, 255, 0.32);
+  max-width: 88vw;
+}
+.still-sub {
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  color: rgba(150, 202, 238, 0.5);
+}
+
+/* ————————————————— 会话里程碑低语 ————————————————— */
+.whisper {
+  position: fixed;
+  bottom: 104px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 44;
+  max-width: min(600px, 86vw);
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 2;
+  letter-spacing: 0.14em;
+  color: rgba(190, 220, 245, 0);
+  transition: color 2.4s ease, text-shadow 2.4s ease;
+  pointer-events: none;
+}
+.whisper.show {
+  color: rgba(190, 220, 245, 0.78);
+  text-shadow: 0 0 24px rgba(88, 186, 255, 0.18);
+}
+
 /* ————————————————— 移动端 ————————————————— */
 @media (max-width: 768px) {
   .slogan {
@@ -838,6 +900,7 @@ body {
     padding: 8px 12px;
   }
   .time-axis input[type="range"] { width: auto; flex: 1; min-width: 0; }
+  .whisper { bottom: 178px; font-size: 10.5px; line-height: 1.9; }
 }
 
 /* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */

@@ -70,6 +70,22 @@ test('分享链接: 选中国家写入 URL, 刷新后恢复', async ({ page }) =
   await expect(page.locator('.country-card')).toBeVisible({ timeout: 30_000 })
 })
 
+test('静默时刻: 空格冻结世界, 再按恢复流动', async ({ page }) => {
+  await page.goto(PATH)
+  await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
+  const big = page.locator('.big-value')
+  await expect(big).toBeVisible()
+  await page.keyboard.press('Space')
+  await expect(page.locator('.still-overlay.show')).toBeVisible()
+  const v1 = await big.textContent()
+  await page.waitForTimeout(1000)
+  expect(await big.textContent()).toBe(v1) // 冻结: 数字静止
+  await page.keyboard.press('Space')
+  await expect(page.locator('.still-overlay.show')).toHaveCount(0)
+  await page.waitForTimeout(900)
+  expect(await big.textContent()).not.toBe(v1) // 恢复: 世界继续
+})
+
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'dev', '双挂载只发生在开发模式')
   await page.goto(PATH)

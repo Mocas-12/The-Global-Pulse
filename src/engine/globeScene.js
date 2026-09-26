@@ -37,6 +37,7 @@ export async function createGlobeScene(container, opts = {}) {
   const {
     isMobile = false,
     reducedMotion = false,
+    home = { lat: 24, lng: 105 },
     isAborted = () => false,
     onSelect,            // (iso|null) 用户点击国家/地球
     onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
@@ -306,7 +307,7 @@ export async function createGlobeScene(container, opts = {}) {
   // ——— 开场: 相机从深空飞入, 标题渐显 ———
   world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
   onIntroStart?.()
-  const arrive = { lat: 24, lng: 105, altitude: isMobile ? 3.4 : 2.35 }
+  const arrive = { lat: home.lat, lng: home.lng, altitude: isMobile ? 3.4 : 2.35 }
   if (reducedMotion) {
     world.pointOfView(arrive, 0)
     onBooted?.()

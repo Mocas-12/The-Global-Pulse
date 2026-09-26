@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { worldEngine, DEATH_CAUSES, REFERENCE_FACTS } from './engine/worldEngine'
 import { scaleAnalogy } from './humanize'
+import { LINES, PAUSE, MILESTONES, fill } from './voice'
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
@@ -13,6 +14,13 @@ import {
 } from './audio/audioEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
+
+// 开场相机落点: 飞向界面语言对应的区域, 让地球第一眼"认得你"
+const HOME = {
+  zh: { lat: 24, lng: 105 },
+  ja: { lat: 36.2, lng: 138.25 },
+  en: { lat: 21, lng: -30 },
+}
 
 const useMedia = (query) => {
   const [match, setMatch] = useState(() => window.matchMedia(query).matches)
@@ -55,6 +63,31 @@ const clockText = () => {
   const date = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`
   const time = `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`
   return `${date} ${time}`
+}
+
+// ————————————————————————————— 轮换的诗(副标题) —————————————————————————————
+// key={lang} 重挂载重置; 每 88s 交叉渐隐换下一句
+function SloganLine({ lang }) {
+  const [idx, setIdx] = useState(0)
+  const [shown, setShown] = useState(true)
+  useEffect(() => {
+    let alive = true
+    let swapTimer
+    const iv = setInterval(() => {
+      setShown(false)
+      swapTimer = setTimeout(() => {
+        if (!alive) return
+        setIdx((i) => (i + 1) % LINES[lang].length)
+        setShown(true)
+      }, 1700)
+    }, 88000)
+    return () => { alive = false; clearInterval(iv); clearTimeout(swapTimer) }
+  }, [lang])
+  return (
+    <div className="slogan">
+      <span className={`slogan-text ${shown ? '' : 'faded'}`}>{LINES[lang][idx]}</span>
+    </div>
+  )
 }
 
 // ————————————————————————————— 顶部滚动快讯 —————————————————————————————
@@ -421,11 +454,13 @@ export default function App() {
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)')
   const isMobileRef = useRef(isMobile)
   const reducedRef = useRef(reducedMotion)
+  const langRef = useRef(lang)
   useEffect(() => {
     isMobileRef.current = isMobile
     sceneRef.current?.setMobile(isMobile)
   }, [isMobile])
   useEffect(() => { reducedRef.current = reducedMotion }, [reducedMotion])
+  useEffect(() => { langRef.current = lang }, [lang])
 
   const [snap, setSnap] = useState(() => worldEngine.snapshot())
   const [selectedIso, setSelectedIso] = useState(() => {
@@ -455,13 +490,73 @@ export default function App() {
   const audioReadyRef = useRef(false)
   const unlockAtRef = useRef(0) // 解锁时刻: 防止同一次手势(pointerdown+click)把声音又关掉
 
+  // 静默时刻: 空格让世界停下 — 引擎冻结、心跳暂停; 地球本身继续转动(世界仍在继续)
+  const [stilled, setStilled] = useState(false)
+  const stilledRef = useRef(false)
+  const toggleStill = useCallback(() => {
+    const next = !stilledRef.current
+    stilledRef.current = next
+    setStilled(next)
+    if (next) {
+      worldEngine.stop()
+      stopAmbient()
+    } else {
+      worldEngine.start()
+      if (audioReadyRef.current && !isMuted()) startAmbient(0.8, isMobileRef.current)
+    }
+  }, [])
+
+  // 会话里程碑低语: 跨过阈值时用真实会话计数说一次(见引擎订阅回调)
+  const [whisperText, setWhisperText] = useState(null)
+  const [whisperShow, setWhisperShow] = useState(false)
+  const shownMilestonesRef = useRef(new Set())
+  const sessionStartRef = useRef(Date.now())
+  const whisperT1 = useRef(null)
+  const whisperT2 = useRef(null)
+
   // 引擎订阅; ?pause 为测试确定性钩子: 冻结推演(数字/脉冲不再变化), 供 E2E 断言与截图
   const frozen = useMemo(() => new URLSearchParams(window.location.search).has('pause'), [])
   useEffect(() => {
-    const un = worldEngine.subscribe(setSnap)
+    const un = worldEngine.subscribe((s) => {
+      setSnap(s)
+      const sec = Math.max(0, (s.at - sessionStartRef.current) / 1000)
+      for (const m of MILESTONES) {
+        if (sec >= m.at && !shownMilestonesRef.current.has(m.at)) {
+          shownMilestonesRef.current.add(m.at)
+          const loc = lang === 'zh' ? 'zh-CN' : lang === 'ja' ? 'ja-JP' : 'en-US'
+          const b = Math.floor(sec * s.liveBirthsPerSec).toLocaleString(loc)
+          const d = Math.floor(sec * s.liveDeathsPerSec).toLocaleString(loc)
+          setWhisperText(fill(m.text[lang], b, d))
+          setWhisperShow(true)
+          clearTimeout(whisperT1.current)
+          clearTimeout(whisperT2.current)
+          whisperT1.current = setTimeout(() => setWhisperShow(false), 7500)
+          whisperT2.current = setTimeout(() => setWhisperText(null), 9800)
+        }
+      }
+    })
     if (!frozen) worldEngine.start()
-    return () => { un(); worldEngine.stop(); stopAmbient() }
-  }, [frozen])
+    return () => {
+      un()
+      worldEngine.stop()
+      stopAmbient()
+      clearTimeout(whisperT1.current)
+      clearTimeout(whisperT2.current)
+    }
+  }, [frozen, lang])
+
+  // 空格触发静默时刻; 焦点在控件上时不劫持
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code !== 'Space' || frozen) return
+      const tag = e.target?.tagName
+      if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'A') return
+      e.preventDefault()
+      toggleStill()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [frozen, toggleStill])
 
   // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
   // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接心跳背景音。
@@ -546,6 +641,7 @@ export default function App() {
       handle = await m.createGlobeScene(containerRef.current, {
         isMobile: isMobileRef.current,
         reducedMotion: reducedRef.current,
+        home: HOME[langRef.current], // 开场只发生一次, 用初始语言
         isAborted: () => disposed,
         onSelect: (iso) => setSelectedIso(iso),
         onIntroStart: () => { introAudioRef.current = true },
@@ -634,7 +730,7 @@ export default function App() {
       </div>
 
       <NewsTicker key={lang} lang={lang} />
-      <div className="slogan">{t.subtitle}</div>
+      <SloganLine key={lang} lang={lang} />
 
       <StatsPanel
         snap={snap}
@@ -672,6 +768,17 @@ export default function App() {
       <div className="hint">
         {viewYear != null ? t.timeHint : soundOn && !audioReady ? t.soundPendingHint : t.clickHint}
       </div>
+
+      <div
+        className={`still-overlay ${stilled ? 'show' : ''}`}
+        onClick={toggleStill}
+        role="status"
+      >
+        <div className="still-line">{PAUSE[lang].line}</div>
+        <div className="still-sub">{PAUSE[lang].sub}</div>
+      </div>
+
+      <div className={`whisper ${whisperShow ? 'show' : ''}`}>{whisperText}</div>
     </div>
   )
 }
