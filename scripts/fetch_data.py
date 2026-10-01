@@ -6,20 +6,79 @@ Outputs:
   public/datasets/countries.geojson  (real boundaries)
   src/data/worldBankData.json        (ISO3 -> {population, birthRate, deathRate, ...})
 """
+import ipaddress
 import json
 import os
+import socket
 import sys
 import time
 import urllib.request
+from pathlib import Path
+from urllib.parse import urlsplit
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = Path(__file__).resolve().parent.parent
+
+# 服务端请求防线：数据源全部为常量官方域名，收紧为白名单
+_ALLOWED_HOSTS = frozenset({
+    'raw.githubusercontent.com',
+    'cdn.jsdelivr.net',
+    'api.worldbank.org',
+    'ourworldindata.org',
+})
+
+
+def _assert_public_url(url):
+    """请求前校验：协议白名单 + 域名白名单 + DNS 解析后 IP 必须公网。
+
+    覆盖环回/私网/链路本地/保留地址；重定向经 _SafeRedirect 逐跳复检。
+    解析与请求间的 DNS rebinding 窗口在 CI 常量数据源场景下可接受。
+    """
+    u = urlsplit(url)
+    if u.scheme not in ('http', 'https'):
+        raise ValueError(f'仅允许 http/https 数据源: {url}')
+    host = (u.hostname or '').strip('[]').lower()
+    if not host:
+        raise ValueError(f'URL 缺少主机名: {url}')
+    if host not in _ALLOWED_HOSTS:
+        raise ValueError(f'数据源域名不在白名单: {host}')
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        pass  # 域名走解析校验
+    else:
+        if not ip.is_global:
+            raise ValueError(f'非公网 IP 被拒: {url}')
+        return url
+    try:
+        infos = socket.getaddrinfo(
+            host, u.port or (443 if u.scheme == 'https' else 80), proto=socket.IPPROTO_TCP
+        )
+    except OSError as exc:
+        raise ValueError(f'域名解析失败: {host}: {exc}') from exc
+    for _, _, _, _, sockaddr in infos:
+        if not ipaddress.ip_address(sockaddr[0]).is_global:
+            raise ValueError(f'{host} 解析到非公网地址: {sockaddr[0]}')
+    return url
+
+
+class _SafeRedirect(urllib.request.HTTPRedirectHandler):
+    """重定向逐跳复检：跳转目标也必须过白名单与公网校验。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102
+        _assert_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_SafeRedirect)
+
 
 def http_get(url, retries=3):
+    _assert_public_url(url)
     last = None
     for i in range(retries):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (data-fetch script)'})
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with _OPENER.open(req, timeout=60) as r:
                 return r.read()
         except Exception as e:  # noqa: BLE001
             last = e
@@ -53,11 +112,12 @@ keep = [k for k in keep_candidates if k in sample]
 slim = {'type': 'FeatureCollection', 'features': [
     {'type': 'Feature', 'properties': {k: f['properties'].get(k) for k in keep},
      'geometry': f['geometry']} for f in feats]}
-os.makedirs(os.path.join(ROOT, 'public', 'datasets'), exist_ok=True)
-out_geo = os.path.join(ROOT, 'public', 'datasets', 'countries.geojson')
-with open(out_geo, 'w', encoding='utf-8') as fh:
+geo_out = (ROOT / 'public' / 'datasets' / 'countries.geojson').resolve()
+assert str(geo_out).startswith(str(ROOT) + os.sep), f'输出越出项目根: {geo_out}'
+geo_out.parent.mkdir(parents=True, exist_ok=True)
+with geo_out.open('w', encoding='utf-8') as fh:
     json.dump(slim, fh, ensure_ascii=False, separators=(',', ':'))
-print('wrote', out_geo, round(os.path.getsize(out_geo) / 1048576, 2), 'MB')
+print('wrote', geo_out, round(geo_out.stat().st_size / 1048576, 2), 'MB')
 
 # ---------- 2. World Bank indicators ----------
 # SP.POP.TOTL population; SP.DYN.CBRT.IN births/1000/yr; SP.DYN.CDRT.IN deaths/1000/yr
@@ -128,11 +188,12 @@ for iso3, rec in wb.items():
     }
 print('countries with WB data:', len(out))
 
-os.makedirs(os.path.join(ROOT, 'src', 'data'), exist_ok=True)
-out_json = os.path.join(ROOT, 'src', 'data', 'worldBankData.json')
-with open(out_json, 'w', encoding='utf-8') as fh:
+wb_out = (ROOT / 'src' / 'data' / 'worldBankData.json').resolve()
+assert str(wb_out).startswith(str(ROOT) + os.sep), f'输出越出项目根: {wb_out}'
+wb_out.parent.mkdir(parents=True, exist_ok=True)
+with wb_out.open('w', encoding='utf-8') as fh:
     json.dump(out, fh, ensure_ascii=False, separators=(',', ':'))
-print('wrote', out_json, round(os.path.getsize(out_json) / 1024, 1), 'KB')
+print('wrote', wb_out, round(wb_out.stat().st_size / 1024, 1), 'KB')
 
 # sanity print
 for k in ('CHN', 'IND', 'USA', 'JPN'):
@@ -169,10 +230,11 @@ if places_raw is not None:
         if iso and pop and isinstance(coords[0], (int, float)):
             rows.append([iso, round(coords[0], 2), round(coords[1], 2), float(pop)])
     rows.sort(key=lambda r: -r[3])
-    out_places = os.path.join(ROOT, 'public', 'datasets', 'populatedPlaces.json')
-    with open(out_places, 'w', encoding='utf-8') as fh:
+    places_out = (ROOT / 'public' / 'datasets' / 'populatedPlaces.json').resolve()
+    assert str(places_out).startswith(str(ROOT) + os.sep), f'输出越出项目根: {places_out}'
+    with places_out.open('w', encoding='utf-8') as fh:
         json.dump(rows, fh, ensure_ascii=False, separators=(',', ':'))
-    print('wrote', out_places, round(os.path.getsize(out_places) / 1024, 1), 'KB,', len(rows), 'cities')
+    print('wrote', places_out, round(places_out.stat().st_size / 1024, 1), 'KB,', len(rows), 'cities')
 else:
     print('WARN: populated places unavailable; pulse clustering disabled')
 
@@ -230,10 +292,11 @@ for rec in series.values():
     if rec.get('p'):
         rec['p'] = [[y, int(round(v))] for y, v in rec['p']]
 
-out_series = os.path.join(ROOT, 'public', 'datasets', 'unSeries.json')
-with open(out_series, 'w', encoding='utf-8') as fh:
+series_out = (ROOT / 'public' / 'datasets' / 'unSeries.json').resolve()
+assert str(series_out).startswith(str(ROOT) + os.sep), f'输出越出项目根: {series_out}'
+with series_out.open('w', encoding='utf-8') as fh:
     json.dump(series, fh, ensure_ascii=False, separators=(',', ':'))
-print('wrote', out_series, round(os.path.getsize(out_series) / 1024, 1), 'KB,', len(series), 'countries')
+print('wrote', series_out, round(series_out.stat().st_size / 1024, 1), 'KB,', len(series), 'countries')
 chn = series.get('CHN', {})
 if chn.get('p') and chn.get('b'):
     y0 = chn['p'][0]

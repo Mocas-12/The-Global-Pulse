@@ -661,6 +661,9 @@ export default function App() {
       handle.setMobile(isMobileRef.current)
       // 分享链接带 ?country= 启动: 场景就绪后补飞选中
       if (selectedIsoRef.current) handle.setSelected(selectedIsoRef.current)
+    }).catch(() => {
+      // chunk 加载失败或 WebGL 上下文创建失败：复用数据层错误 UI 提供重试入口
+      if (!disposed) setGeoError(true)
     })
     return () => {
       disposed = true
@@ -668,7 +671,7 @@ export default function App() {
       handle = null
       sceneRef.current = null
     }
-  }, [geoLoaded])
+  }, [geoLoaded, geoAttempt])
 
   useEffect(() => {
     sceneRef.current?.setSelected(selectedIso)
