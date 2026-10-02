@@ -15,7 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "globe.gl": "^2.45.0",
+    "globe.gl": "^2.46.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.183.1"
