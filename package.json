@@ -21,7 +21,7 @@
     "three": "^0.183.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/dom": "^10.4.2",
