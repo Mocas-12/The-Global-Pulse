@@ -6,6 +6,10 @@ on:
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
+# 拨测只需只读 checkout
+permissions:
+  contents: read
+
 concurrency:
   group: prod-monitor
   cancel-in-progress: false
