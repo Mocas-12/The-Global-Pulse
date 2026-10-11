@@ -74,8 +74,8 @@ const GLOBE_FRAG = /* glsl */ `
     // 海面太阳耀斑(uWaterK: 贴图就绪后渐入)
     float waterMask = texture2D(uWater, vUv).r * uWaterK;
     vec3 H = normalize(uSunDir + V);
-    float spec = pow(max(dot(N, H), 0.0), 48.0) * waterMask * dayMix;
-    col += vec3(1.0, 0.90, 0.72) * spec * 0.9;
+    float spec = pow(max(dot(N, H), 0.0), 130.0) * waterMask * dayMix;
+    col += vec3(1.0, 0.97, 0.92) * spec * 0.42;
 
     // 晨昏线暖橙余晖
     float term = pow(1.0 - abs(ndl), 14.0) * dayMix * (1.0 - dayMix) * 4.0;
@@ -84,8 +84,8 @@ const GLOBE_FRAG = /* glsl */ `
     // 地表边缘大气散射(菲涅尔)
     float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
     float lit = clamp(ndl * 1.6 + 0.55, 0.0, 1.0);
-    vec3 atmCol = mix(vec3(0.04, 0.09, 0.22), vec3(0.26, 0.52, 1.0), lit);
-    col += atmCol * fres * (0.35 + 0.85 * lit);
+    vec3 atmCol = mix(vec3(0.05, 0.07, 0.12), vec3(0.35, 0.55, 0.95), lit);
+    col += atmCol * fres * (0.28 + 0.60 * lit);
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -118,8 +118,8 @@ const ATMO_FRAG = /* glsl */ `
     float rim = clamp(-d / 0.55, 0.0, 1.0);    // 0 外缘 -> 1 贴近地表轮廓
     float glow = pow(rim, 2.6);
     float sun = clamp(dot(N, uSunDir) * 1.5 + 0.45, 0.0, 1.0);
-    vec3 col = mix(vec3(0.015, 0.04, 0.10), vec3(0.18, 0.46, 1.0), sun);
-    gl_FragColor = vec4(col * glow * (0.30 + 0.95 * sun), glow);
+    vec3 col = mix(vec3(0.02, 0.035, 0.08), vec3(0.30, 0.50, 0.90), sun);
+    gl_FragColor = vec4(col * glow * (0.22 + 0.70 * sun), glow);
   }
 `
 
@@ -215,10 +215,10 @@ export function createStarfield({ count = 6500, radius = 2600, pixelRatio = 1 } 
     // 色温分布: 少量蓝巨星 / 大量白黄 / 少量暖橙
     const t = Math.random()
     let cr, cg, cb
-    if (t < 0.10) { cr = 0.62; cg = 0.75; cb = 1.0 }
-    else if (t < 0.55) { cr = 0.92; cg = 0.95; cb = 1.0 }
-    else if (t < 0.88) { cr = 1.0; cg = 0.96; cb = 0.88 }
-    else { cr = 1.0; cg = 0.80; cb = 0.60 }
+    if (t < 0.08) { cr = 0.72; cg = 0.80; cb = 1.0 }
+    else if (t < 0.50) { cr = 0.95; cg = 0.96; cb = 1.0 }
+    else if (t < 0.85) { cr = 1.0; cg = 0.97; cb = 0.92 }
+    else { cr = 1.0; cg = 0.87; cb = 0.75 }
     const mag = Math.pow(Math.random(), 2.4) // 幂律: 大部分暗星
     const b = 0.30 + 0.70 * mag
     col[i * 3] = cr * b

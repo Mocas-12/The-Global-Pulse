@@ -28,3 +28,7 @@ playwright-report
 
 # 本地演示产物
 pulse-comparison.png
+
+# 安全扫描钩子状态与 Python 缓存
+.mimosa/
+__pycache__/

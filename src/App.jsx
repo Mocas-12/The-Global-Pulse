@@ -662,7 +662,7 @@ export default function App() {
       // 分享链接带 ?country= 启动: 场景就绪后补飞选中
       if (selectedIsoRef.current) handle.setSelected(selectedIsoRef.current)
     }).catch(() => {
-      // chunk 加载失败或 WebGL 上下文创建失败：复用数据层错误 UI 提供重试入口
+      // chunk 加载失败或 WebGL 上下文创建失败: 复用数据层错误 UI 提供重试入口
       if (!disposed) setGeoError(true)
     })
     return () => {
@@ -711,10 +711,7 @@ export default function App() {
 
   return (
     <div className={`app-root ${ready ? 'ready' : ''} ${booted ? 'booted' : ''}`}>
-      <div className="bg-nebula" aria-hidden="true" />
       <div ref={containerRef} className="globe-container" />
-      <div className="bg-vignette" aria-hidden="true" />
-      <div className="bg-grain" aria-hidden="true" />
 
       {!ready && !geoError && (
         <div className="loading-mask"><span className="loading-dot" />{t.loading}</div>
@@ -727,7 +724,6 @@ export default function App() {
       )}
 
       <div className={`intro-title ${introGone ? 'gone' : ''}`} aria-hidden="true">
-        <div className="intro-rule" />
         <h1>{t.title}</h1>
         <p>{t.subtitle}</p>
       </div>

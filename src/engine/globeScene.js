@@ -59,7 +59,7 @@ export async function createGlobeScene(container, opts = {}) {
     .backgroundColor('rgba(0,0,0,0)')
     .showAtmosphere(false)
     .polygonsData(worldEngine.features)
-    .polygonSideColor(() => 'rgba(120, 220, 255, 0.05)')
+    .polygonSideColor(() => 'rgba(160, 175, 210, 0.06)')
     .polygonsTransitionDuration(280)
     .polygonLabel(() => '')
 
@@ -178,8 +178,8 @@ export async function createGlobeScene(container, opts = {}) {
     arr[i * 3 + 1] = v.y
     arr[i * 3 + 2] = v.z
   }
-  const BIRTH = new THREE.Color(0x2affb4)
-  const DEATH = new THREE.Color(0xff5470)
+  const BIRTH = new THREE.Color(0x30d158)
+  const DEATH = new THREE.Color(0xff453a)
 
   const spawn = ({ type, lat, lng }) => {
     const i = spawn.head % MAX
@@ -217,16 +217,17 @@ export async function createGlobeScene(container, opts = {}) {
 
   const polygonCapColor = (f) => {
     const iso = f.__iso3
-    if (iso === hoverIso) return 'rgba(140, 225, 255, 0.42)'
-    if (iso === selectedIso) return 'rgba(190, 240, 255, 0.36)'
+    if (iso === hoverIso) return 'rgba(255, 255, 255, 0.30)'
+    if (iso === selectedIso) return 'rgba(255, 255, 255, 0.22)'
     const c = worldEngine.countries[iso]
     const pop = c?.population || 0
     const l = Math.log10(Math.max(pop, 1)) // 0 ~ 9.2
     const k = Math.min(1, Math.max(0, (l - 4.5) / 4.7))
+    // 中性石墨蓝: 人口对数 -> 淡填充, 让真实地表透出
     const stops = [
-      [12, 34, 72],
-      [16, 92, 140],
-      [24, 200, 235],
+      [40, 46, 60],
+      [70, 80, 104],
+      [116, 132, 164],
     ]
     const seg = k < 0.5 ? 0 : 1
     const p = k < 0.5 ? k * 2 : (k - 0.5) * 2
@@ -235,17 +236,17 @@ export async function createGlobeScene(container, opts = {}) {
     const r = Math.round(a[0] + (b[0] - a[0]) * p)
     const g = Math.round(a[1] + (b[1] - a[1]) * p)
     const bl = Math.round(a[2] + (b[2] - a[2]) * p)
-    const alpha = 0.10 + 0.26 * k
+    const alpha = 0.10 + 0.24 * k
     return `rgba(${r},${g},${bl},${alpha})`
   }
 
   const polygonStrokeColor = (f) => {
     const iso = f.__iso3
-    if (iso === hoverIso) return 'rgba(215, 245, 255, 0.95)'
-    if (iso === selectedIso) return 'rgba(255, 255, 255, 0.85)'
+    if (iso === hoverIso) return 'rgba(255, 255, 255, 0.9)'
+    if (iso === selectedIso) return 'rgba(255, 255, 255, 0.75)'
     const c = worldEngine.countries[iso]
     const k = Math.min(1, Math.max(0, (Math.log10(Math.max(c?.population || 0, 1)) - 4.5) / 4.7))
-    return `rgba(150, 225, 255, ${0.22 + 0.3 * k})`
+    return `rgba(170, 190, 220, ${0.18 + 0.25 * k})`
   }
 
   const polygonAltitude = (f) => (

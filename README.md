@@ -50,7 +50,7 @@
 - 🔗 **Human touches** — the "since you opened this page" net-growth counter is translated into human scale (classroom / school / cruise ship / city); copy a share link for any selected country that flies straight there on open
 - 🎐 **The stillness moment** — press space and the world stops: numbers freeze, the heartbeat pauses, and "the world goes on, inside the second you held still" surfaces from the dark; at 1 / 5 / 15 minutes of staying, the screen whispers your real session counts once
 - 🖋 **Turning verse** — the subtitle is no longer one fixed line but rotates through hand-written trilingual aphorisms every 88 seconds; the intro camera flies toward the region matching your language, so the globe recognizes you at first sight
-- 🎬 **Cinematic intro** — deep-space camera fly-in + title fade sequence + panels defocusing in; procedural twinkling starfield and film-grain atmosphere
+- 🎬 **Cinematic intro** — deep-space camera fly-in + title fade sequence + panels easing in; procedural twinkling starfield
 - 🗺️ **Country details** — click any country and the camera flies in; see population, rank, births/deaths today, birth/death rates, and share of the global total (data year noted)
 - 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
 - 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation
@@ -63,9 +63,9 @@
 
 | Element | Design |
 | --- | --- |
-| Theme | Deep-space cinematic: near-black base + faint nebula + vignette and film grain, procedural twinkling starfield |
-| Panels | Glassmorphism: translucent dark fills + backdrop blur & saturation + thin strokes + top hairline |
-| Accent colors | Sky cyan `#38bdf8` primary; birth green `#2affb4` · death red `#ff5470` dual semantic colors |
+| Theme | Apple glass: pure-black base + frosted-glass panels + hairline strokes, procedural twinkling starfield |
+| Panels | Frosted glass: blur(28px) saturate(1.7) + 22px radii + deep shadows (visionOS feel) |
+| Accent colors | System blue `#0a84ff`; birth green `#30d158` · death red `#ff453a` (iOS semantic colors) |
 | Hero visual | 3D realistic globe: NASA day/night textures + live terminator + atmospheric scattering + clouds; countries as thin strokes with faint tint |
 | Motion | Birth/death flash + shockwave rings; intro camera fly-in and title fade; hand-rolled rAF number tweens; `prefers-reduced-motion` fallback |
 | Layout | Top scrolling ticker + left statistics panel + click-to-open country cards (camera flies in) |
@@ -106,7 +106,7 @@ The-Global-Pulse/
 │   ├── voice.js             # The page's "voice": turning verse / stillness moment / milestone whispers
 │   ├── humanize.js          # Human-scale translation of session net growth
 │   ├── news.js              # Scrolling ticker generation
-│   └── index.css            # Deep-space cinematic theme (glassmorphism panels / intro sequence)
+│   └── index.css            # Apple glass theme (frosted panels / intro sequence)
 ├── e2e/smoke.spec.js        # Playwright smoke tests (mobile viewport / ?pause freeze / StrictMode single instance)
 ├── playwright.config.js     # E2E config: built bundle + dev server
 ├── playwright.prod.config.js # Live-site monitor config (runs against production)
