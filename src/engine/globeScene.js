@@ -40,6 +40,7 @@ export async function createGlobeScene(container, opts = {}) {
     home = { lat: 24, lng: 105 },
     isAborted = () => false,
     onSelect,            // (iso|null) 用户点击国家/地球
+    onIss,               // ({alt, vel}|null) ISS 实时遥测(加载成功后每秒)
     onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
     onReady,             // 场景就绪(隐藏 loading)
     onBooted,            // 面板入场
@@ -48,6 +49,7 @@ export async function createGlobeScene(container, opts = {}) {
 
   let dead = false
   const timers = []
+  const intervals = []
   const textures = []
 
   // 白天贴图先到先渲染
@@ -62,6 +64,11 @@ export async function createGlobeScene(container, opts = {}) {
     .polygonSideColor(() => 'rgba(160, 175, 210, 0.06)')
     .polygonsTransitionDuration(280)
     .polygonLabel(() => '')
+    // USGS 实时地震(免密钥): 琥珀点, 震级映射大小
+    .pointsData([])
+    .pointColor(() => '#ff9f0a')
+    .pointAltitude(0.012)
+    .pointRadius((d) => 0.18 + Math.max(0, d.mag - 1) * 0.09)
 
   world.controls().enableDamping = true
   world.controls().dampingFactor = 0.08
@@ -180,12 +187,13 @@ export async function createGlobeScene(container, opts = {}) {
   }
   const BIRTH = new THREE.Color(0x30d158)
   const DEATH = new THREE.Color(0xff453a)
+  const QUAKE = new THREE.Color(0xff9f0a)
 
   const spawn = ({ type, lat, lng }) => {
     const i = spawn.head % MAX
     spawn.head += 1
     setPulsePosition(positions, i, lat, lng)
-    const col = type === 'birth' ? BIRTH : DEATH
+    const col = type === 'quake' ? QUAKE : type === 'death' ? DEATH : BIRTH
     baseColors[i * 3] = col.r
     baseColors[i * 3 + 1] = col.g
     baseColors[i * 3 + 2] = col.b
@@ -209,6 +217,90 @@ export async function createGlobeScene(container, opts = {}) {
   spawn.ringHead = 0
 
   const unPulse = worldEngine.onPulse(spawn)
+
+  // ——— USGS 实时地震层(免密钥): 5 分钟刷新, 新 M4.5+ 事件触发琥珀涟漪 ———
+  let quakeIds = null
+  const refreshQuakes = async () => {
+    try {
+      const r = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
+      if (!r.ok) return
+      const data = await r.json()
+      const quakes = (data.features || [])
+        .filter((f) => f.properties.mag != null && f.geometry?.coordinates)
+        .map((f) => ({
+          id: f.id,
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          mag: f.properties.mag,
+        }))
+      if (quakeIds && !dead) {
+        for (const q of quakes) {
+          if (!quakeIds.has(q.id) && q.mag >= 4.5) spawn({ type: 'quake', lat: q.lat, lng: q.lng })
+        }
+      }
+      quakeIds = new Set(quakes.map((q) => q.id))
+      if (!dead) world.pointsData(quakes)
+    } catch { /* 网络不可用静默降级 */ }
+  }
+  refreshQuakes()
+  intervals.push(setInterval(refreshQuakes, 5 * 60 * 1000))
+
+  // ——— ISS 实时轨道(CelesTrak TLE + satellite.js, 免密钥): 位置每秒解算 ———
+  ;(async () => {
+    try {
+      const sat = await import('satellite.js')
+      const r = await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE')
+      if (!r.ok || dead) return
+      const lines = (await r.text()).split('\n').map((l) => l.trim()).filter(Boolean)
+      if (lines.length < 3 || dead) return
+      const satrec = sat.twoline2satrec(lines[1], lines[2])
+
+      // 轨道圈: 未来 95 分钟每 30 秒采样
+      const nowMs = Date.now()
+      const orbit = []
+      for (let m = 0; m <= 95 * 60; m += 30) {
+        const d = new Date(nowMs + m * 1000)
+        const pv = sat.propagate(satrec, d)
+        if (!pv?.position) continue
+        const gd = sat.eciToGeodetic(pv.position, sat.gstime(d))
+        orbit.push([gd.latitude * 180 / Math.PI, gd.longitude * 180 / Math.PI, gd.height * 0.066])
+      }
+      if (dead || orbit.length < 32) return
+      world.pathsData([{ points: orbit }])
+        .pathPoints((d) => d.points)
+        .pathPointLat((p) => p[0])
+        .pathPointLng((p) => p[1])
+        .pathPointAlt((p) => p[2])
+        .pathColor(() => 'rgba(255,255,255,0.30)')
+        .pathStroke(1)
+
+      const issObj = { lat: 0, lng: 0, alt: 0 }
+      world
+        .objectsData([issObj])
+        .objectLat((d) => d.lat)
+        .objectLng((d) => d.lng)
+        .objectAltitude((d) => d.alt)
+        .objectThreeObject(new THREE.Mesh(
+          new THREE.SphereGeometry(1.1, 12, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        ))
+      const tick = () => {
+        if (dead) return
+        const d = new Date()
+        const pv = sat.propagate(satrec, d)
+        if (!pv?.position) return
+        const gd = sat.eciToGeodetic(pv.position, sat.gstime(d))
+        issObj.lat = gd.latitude * 180 / Math.PI
+        issObj.lng = gd.longitude * 180 / Math.PI
+        issObj.alt = gd.height * 0.066
+        world.objectsData([issObj])
+        const v = pv.velocity
+        onIss?.({ alt: Math.round(gd.height), vel: Math.hypot(v.x, v.y, v.z).toFixed(2) })
+      }
+      tick()
+      intervals.push(setInterval(tick, 1000))
+    } catch { /* TLE 拉取失败静默降级 */ }
+  })()
 
   // ——— 国家多边形着色: 人口对数 -> 淡填充, 让真实地表透出 ———
   let hoverIso = null
@@ -299,6 +391,10 @@ export async function createGlobeScene(container, opts = {}) {
     refreshPolygons()
   }
 
+  function setStyle(n) {
+    globeMat.uniforms.uStyle.value = n
+  }
+
   function setMobile(mobile) {
     if (!introDone || selectedIso || reducedMotion) return
     const pov = world.pointOfView()
@@ -380,9 +476,11 @@ export async function createGlobeScene(container, opts = {}) {
     setSelected,
     setHover,
     setMobile,
+    setStyle,
     dispose() {
       dead = true
       timers.forEach(clearTimeout)
+      intervals.forEach(clearInterval)
       window.removeEventListener('resize', onResize)
       unPulse()
       cancelAnimationFrame(raf)

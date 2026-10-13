@@ -89,6 +89,20 @@ test('静默时刻: 空格冻结世界, 再按恢复流动', async ({ page }) =>
   await expect.poll(async () => big.textContent(), { timeout: 6000 }).not.toBe(v1) // 恢复: 世界继续
 })
 
+test('传感器风格: 数字键 1-4 切换, 徽章随模式显隐', async ({ page }) => {
+  await page.goto(PATH)
+  await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })
+  await expect(page.locator('.sensor-badge')).toHaveCount(0)
+  await page.keyboard.press('2')
+  await expect(page.locator('.sensor-badge')).toHaveText('NVG')
+  await page.keyboard.press('3')
+  await expect(page.locator('.sensor-badge')).toHaveText('FLIR')
+  await page.keyboard.press('4')
+  await expect(page.locator('.sensor-badge')).toHaveText('NOIR')
+  await page.keyboard.press('1')
+  await expect(page.locator('.sensor-badge')).toHaveCount(0)
+})
+
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'dev', '双挂载只发生在开发模式')
   await page.goto(PATH)

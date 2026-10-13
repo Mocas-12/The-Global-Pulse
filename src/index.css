@@ -795,6 +795,51 @@ body {
 }
 .ta-now:hover { color: var(--text); }
 
+/* ————————————————— 传感器徽章 + ISS 遥测芯片 ————————————————— */
+.sensor-badge {
+  background: rgba(48, 209, 88, 0.14);
+  border: 1px solid rgba(48, 209, 88, 0.35);
+  border-radius: 999px;
+  color: var(--birth);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 8px 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sensor-badge:hover { background: rgba(48, 209, 88, 0.24); }
+.iss-chip {
+  position: fixed;
+  right: 16px;
+  bottom: 12px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.iss-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
 /* ————————————————— 静默时刻 ————————————————— */
 .still-overlay {
   position: fixed;
@@ -913,6 +958,7 @@ body {
   }
   .time-axis input[type="range"] { width: auto; flex: 1; min-width: 0; }
   .whisper { bottom: 150px; font-size: 12px; line-height: 1.7; }
+  .iss-chip { display: none; }
 }
 
 /* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */

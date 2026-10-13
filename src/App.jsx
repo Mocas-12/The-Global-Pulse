@@ -506,6 +506,19 @@ export default function App() {
     }
   }, [])
 
+  // 传感器风格(致敬 OSINT 视图): 数字键 1-4 切换 标准/夜视/热成像/黑白
+  const SENSOR_NAMES = ['NVG', 'FLIR', 'NOIR']
+  const [sensor, setSensor] = useState(0)
+  const sensorRef = useRef(0)
+  const changeSensor = useCallback((n) => {
+    sensorRef.current = n
+    setSensor(n)
+    sceneRef.current?.setStyle(n)
+  }, [])
+
+  // ISS 实时遥测(场景加载成功后每秒回调)
+  const [iss, setIss] = useState(null)
+
   // 会话里程碑低语: 跨过阈值时用真实会话计数说一次(见引擎订阅回调)
   const [whisperText, setWhisperText] = useState(null)
   const [whisperShow, setWhisperShow] = useState(false)
@@ -545,18 +558,23 @@ export default function App() {
     }
   }, [frozen, lang])
 
-  // 空格触发静默时刻; 焦点在控件上时不劫持
+  // 空格触发静默时刻, 数字键 1-4 切换传感器风格; 焦点在控件上时不劫持
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code !== 'Space' || frozen) return
+      if (frozen) return
       const tag = e.target?.tagName
       if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'A') return
-      e.preventDefault()
-      toggleStill()
+      if (e.code === 'Space') {
+        e.preventDefault()
+        toggleStill()
+        return
+      }
+      const styleByDigit = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3 }
+      if (e.code in styleByDigit) changeSensor(styleByDigit[e.code])
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [frozen, toggleStill])
+  }, [frozen, toggleStill, changeSensor])
 
   // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
   // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接心跳背景音。
@@ -644,6 +662,7 @@ export default function App() {
         home: HOME[langRef.current], // 开场只发生一次, 用初始语言
         isAborted: () => disposed,
         onSelect: (iso) => setSelectedIso(iso),
+        onIss: (info) => setIss(info),
         onIntroStart: () => { introAudioRef.current = true },
         onReady: () => setReady(true),
         onBooted: () => setBooted(true),
@@ -747,7 +766,18 @@ export default function App() {
         <TimeAxis lang={lang} viewYear={viewYear} onChange={changeViewYear} seriesRange={seriesRange} />
       )}
 
+      {iss && (
+        <div className="iss-chip" title="ISS · CelesTrak TLE 实时解算">
+          <span className="iss-dot" />ISS · {iss.alt} KM · {iss.vel} KM/S
+        </div>
+      )}
+
       <div className="top-right">
+        {sensor > 0 && (
+          <button className="sensor-badge" onClick={() => changeSensor(0)} title="1 · 标准">
+            {SENSOR_NAMES[sensor - 1]}
+          </button>
+        )}
         <div className="lang-switch">
           {LANGS.map((l) => (
             <button key={l} className={lang === l ? 'on' : ''} onClick={() => changeLang(l)}>

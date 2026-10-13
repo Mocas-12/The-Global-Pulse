@@ -50,6 +50,7 @@ const GLOBE_FRAG = /* glsl */ `
   uniform vec3 uSunDir;
   uniform float uNightBoost;
   uniform float uWaterK;
+  uniform float uStyle; // 0 标准 1 夜视NVG 2 热成像FLIR 3 黑白Noir
   varying vec2 vUv;
   varying vec3 vNormalW;
   varying vec3 vPosW;
@@ -87,6 +88,26 @@ const GLOBE_FRAG = /* glsl */ `
     vec3 atmCol = mix(vec3(0.05, 0.07, 0.12), vec3(0.35, 0.55, 0.95), lit);
     col += atmCol * fres * (0.28 + 0.60 * lit);
 
+    // 传感器风格后处理(数字键切换, 致敬 OSINT 情报视图)
+    if (uStyle > 0.5) {
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+      if (uStyle < 1.5) {
+        // 夜视 NVG: 绿色单色增亮 + 扫描噪点
+        float n = fract(sin(dot(floor(vUv * vec2(720.0, 405.0)), vec2(12.9898, 78.233))) * 43758.5453);
+        col = vec3(lum * 1.0, lum * 1.85 + 0.07, lum * 0.85) + n * 0.055;
+      } else if (uStyle < 2.5) {
+        // 热成像 FLIR: 亮度 -> 铁 red ramp
+        col = vec3(
+          clamp(lum * 2.2, 0.0, 1.0),
+          clamp(lum * lum * 2.6 - 0.25, 0.0, 1.0),
+          clamp(0.85 - lum * 3.2, 0.0, 1.0)
+        );
+      } else {
+        // Noir: 黑白轻提对比
+        col = vec3(clamp((lum - 0.5) * 1.25 + 0.5, 0.0, 1.0));
+      }
+    }
+
     gl_FragColor = vec4(col, 1.0);
   }
 `
@@ -100,6 +121,7 @@ export function createGlobeMaterial({ day, night, water }) {
       uSunDir: { value: new THREE.Vector3(1, 0, 0) },
       uNightBoost: { value: 0 },
       uWaterK: { value: 0 },
+      uStyle: { value: 0 },
     },
     vertexShader: GLOBE_VERT,
     fragmentShader: GLOBE_FRAG,
