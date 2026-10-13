@@ -739,7 +739,6 @@ export default function App() {
 
       <div className={`intro-title ${introGone ? 'gone' : ''}`} aria-hidden="true">
         <h1>{t.title}</h1>
-        <p>{t.subtitle}</p>
       </div>
 
       {/* key 前缀区分: 相邻兄弟同 key 会让 React 19 的 keyed 协调错乱(实测每秒累积一个实例) */}
