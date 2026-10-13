@@ -9,7 +9,7 @@ import { LINES, PAUSE, MILESTONES, fill } from './voice'
 import { T, LANGS } from './i18n'
 import { makeNews } from './news'
 import {
-  ensureCtx, startAmbient, stopAmbient, playIntro,
+  ensureCtx, startAmbient, stopAmbient,
   setMuted, isMuted,
 } from './audio/audioEngine'
 
@@ -434,7 +434,6 @@ function TimeAxis({ lang, viewYear, onChange, seriesRange }) {
 export default function App() {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
-  const introAudioRef = useRef(false) // 开场飞入期间为 true, 首次解锁音频时据此播放接近音
   const [lang, setLang] = useState(() => {
     // 分享链接的 ?lang= 优先; 其次本地记忆; 默认中文
     try {
@@ -502,7 +501,7 @@ export default function App() {
       stopAmbient()
     } else {
       worldEngine.start()
-      if (audioReadyRef.current && !isMuted()) startAmbient(0.8, isMobileRef.current)
+      if (audioReadyRef.current && !isMuted()) startAmbient(0.8)
     }
   }, [])
 
@@ -576,20 +575,20 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [frozen, toggleStill, changeSensor])
 
-  // 音频: 默认开启, 但受浏览器自动播放策略限制——首次用户手势时解锁。
-  // 若解锁发生在开场飞入期间, 先播放"由远到近"接近音, 再衔接心跳背景音。
+  // 音频: 默认开启。浏览器自动播放策略不允许无手势出声, 但一旦解锁立即进入音乐,
+  // 不再有"接近音"前摇; 某些浏览器对回访放行, 挂载时也会尝试直接开播。
   const enableAudio = useCallback(() => {
     ensureCtx()
     setMuted(false)
     audioReadyRef.current = true
     setAudioReady(true)
-    if (introAudioRef.current) {
-      const d = playIntro() || 3
-      setTimeout(() => { if (!isMuted()) startAmbient(1.2, isMobileRef.current) }, d * 720)
-    } else {
-      startAmbient(1.2, isMobileRef.current)
-    }
+    startAmbient(1.6)
   }, [])
+
+  useEffect(() => {
+    const audioCtx = ensureCtx()
+    if (audioCtx && audioCtx.state === 'running') enableAudio()
+  }, [enableAudio])
 
   useEffect(() => {
     const onGesture = () => {
@@ -663,13 +662,9 @@ export default function App() {
         isAborted: () => disposed,
         onSelect: (iso) => setSelectedIso(iso),
         onIss: (info) => setIss(info),
-        onIntroStart: () => { introAudioRef.current = true },
         onReady: () => setReady(true),
         onBooted: () => setBooted(true),
-        onIntroDone: () => {
-          introAudioRef.current = false
-          setIntroGone(true)
-        },
+        onIntroDone: () => setIntroGone(true),
       })
       if (disposed) {
         handle?.dispose()

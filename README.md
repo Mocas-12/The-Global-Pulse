@@ -57,7 +57,7 @@
 - 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
 - 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation
 - 🈶 **Trilingual interface** — 中文 / English / 日本語
-- 🔊 **Synthesized sound** — an intro approach sound and a heartbeat ambient soundscape synthesized in real time with Web Audio (on by default; unlocked automatically on your first interaction, mute via the top-right corner)
+- 🎵 **Generative background music** — a cheerful music-box bed (Cmaj9 four-chord pad + pentatonic plucks + light reverb) synthesized in real time with Web Audio, zero audio files; on by default and starts on your first interaction (browser autoplay policy), mute via the top-right corner
 - ⚡ **Fast first paint** — the 3D scene is lazy-loaded (first-paint JS ≈ 78 KB gzip) + all textures converted to WebP + the day texture renders first while night lights and clouds fade in
 - 🛡️ **Quality gates** — CI runs four gates (ESLint → engine & component unit tests → Playwright smoke × built bundle/dev server → build) and only publishes when all pass; the live site is smoke-tested every 6 hours with email notifications on failure; a global ErrorBoundary and `prefers-reduced-motion` support round it out
 
@@ -85,7 +85,7 @@ flowchart LR
 2. **Real-time simulation**: with World Bank annual crude birth/death rates as the rate, "today / this year" figures are integrated from local midnight / the start of the year; the world population base is the sum of each country's 2024 estimate (about 8.21 billion)
 3. **Landing-point sampling**: pulse lights are weighted by each country's birth/death rate to pick a country, then a city inside it is picked weighted by urban population with a Gaussian spread (shrinking and retrying when a sample falls outside the border), while a fifth of samples stay uniform to represent rural population
 4. **Rendering & interaction**: globe.gl + three.js are lazy-loaded (`src/engine/globeScene.js`, in parallel with the data download); `src/engine/globeFX.js` provides custom shaders — the subsolar point is computed from UTC in real time via a low-precision astronomical algorithm (±0.01°), blending day/night textures, ocean glint and atmospheric scattering every frame; the day texture renders first, then night lights and clouds fade in; clicking a country flies the camera in and opens a details card
-5. **Synthesized audio**: Web Audio synthesizes the intro approach sound and a heartbeat ambient soundscape in real time — no audio files at all
+5. **Generative background music**: Web Audio synthesizes a cheerful music-box bed (four-chord pad + pentatonic plucks) in real time — no audio files at all
 
 ## 📁 Project Structure
 
