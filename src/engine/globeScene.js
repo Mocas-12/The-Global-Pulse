@@ -255,25 +255,7 @@ export async function createGlobeScene(container, opts = {}) {
       if (lines.length < 3 || dead) return
       const satrec = sat.twoline2satrec(lines[1], lines[2])
 
-      // 轨道圈: 未来 95 分钟每 30 秒采样
-      const nowMs = Date.now()
-      const orbit = []
-      for (let m = 0; m <= 95 * 60; m += 30) {
-        const d = new Date(nowMs + m * 1000)
-        const pv = sat.propagate(satrec, d)
-        if (!pv?.position) continue
-        const gd = sat.eciToGeodetic(pv.position, sat.gstime(d))
-        orbit.push([gd.latitude * 180 / Math.PI, gd.longitude * 180 / Math.PI, gd.height * 0.066])
-      }
-      if (dead || orbit.length < 32) return
-      world.pathsData([{ points: orbit }])
-        .pathPoints((d) => d.points)
-        .pathPointLat((p) => p[0])
-        .pathPointLng((p) => p[1])
-        .pathPointAlt((p) => p[2])
-        .pathColor(() => 'rgba(255,255,255,0.30)')
-        .pathStroke(1)
-
+      // 拖尾弧线: 只画 ISS 身后 18 分钟的轨迹(彗尾), 不画全轨道圈
       const issObj = { lat: 0, lng: 0, alt: 0 }
       world
         .objectsData([issObj])
@@ -286,7 +268,25 @@ export async function createGlobeScene(container, opts = {}) {
         ))
       const tick = () => {
         if (dead) return
-        const d = new Date()
+        const nowMs = Date.now()
+        const trail = []
+        for (let m = -18 * 60; m <= 0; m += 4) {
+          const d = new Date(nowMs + m * 1000)
+          const pv = sat.propagate(satrec, d)
+          if (!pv?.position) continue
+          const gd = sat.eciToGeodetic(pv.position, sat.gstime(d))
+          trail.push([gd.latitude * 180 / Math.PI, gd.longitude * 180 / Math.PI, gd.height * 0.066])
+        }
+        if (trail.length > 1) {
+          world.pathsData([{ points: trail }])
+            .pathPoints((d) => d.points)
+            .pathPointLat((p) => p[0])
+            .pathPointLng((p) => p[1])
+            .pathPointAlt((p) => p[2])
+            .pathColor(() => 'rgba(255,255,255,0.35)')
+            .pathStroke(1)
+        }
+        const d = new Date(nowMs)
         const pv = sat.propagate(satrec, d)
         if (!pv?.position) return
         const gd = sat.eciToGeodetic(pv.position, sat.gstime(d))
