@@ -925,38 +925,6 @@ body {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
-/* ————————————————— 灾害图例 ————————————————— */
-.disaster-legend {
-  position: fixed;
-  left: 16px;
-  bottom: 12px;
-  z-index: 35;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--glass);
-  border: 1px solid var(--hairline);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  font-size: 11px;
-  color: var(--text-2);
-  pointer-events: none;
-}
-.disaster-legend span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.disaster-legend i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: none;
-}
-
 /* ————————————————— 静默时刻 ————————————————— */
 .still-overlay {
   position: fixed;

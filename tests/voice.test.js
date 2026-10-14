@@ -4,20 +4,21 @@ import { LINES, PAUSE, MILESTONES, fill } from '../src/voice'
 import { LANGS } from '../src/i18n'
 
 describe('voice 内容', () => {
-  it('三种语言各 8 句诗, 均非空且不重复', () => {
+  it('三种语言各 7 句诗, 均非空且不重复', () => {
     for (const lang of LANGS) {
-      expect(LINES[lang]).toHaveLength(8)
+      expect(LINES[lang]).toHaveLength(7)
       for (const line of LINES[lang]) {
         expect(line.trim().length).toBeGreaterThan(4)
       }
-      expect(new Set(LINES[lang]).size).toBe(8)
+      expect(new Set(LINES[lang]).size).toBe(7)
     }
   })
 
-  it('三语首句与开场副标题一致(回声设计)', () => {
-    expect(LINES.zh[0]).toBe('万物皆逝，万物皆始。')
-    expect(LINES.en[0]).toBe('All things fade; all things begin.')
-    expect(LINES.ja[0]).toBe('万物は逝き、万物は始まる。')
+  it('三语首句为时间意象句(万物皆逝已按要求移除)', () => {
+    expect(LINES.zh[0]).toBe('没有人见过时间，人们只见过出生与告别。')
+    expect(LINES.en[0]).toBe('No one has ever seen time — only arrivals and farewells.')
+    expect(LINES.ja[0]).toBe('時間を見た人はいない。見えるのは誕生と別れだけ。')
+    expect(JSON.stringify(LINES.zh).includes('万物皆逝')).toBe(false)
   })
 
   it('静默时刻三语齐备', () => {

@@ -483,7 +483,6 @@ export default function App() {
   const [geoAttempt, setGeoAttempt] = useState(0)
   const [ready, setReady] = useState(false)       // 地球就绪, 开场开始
   const [bootStage, setBootStage] = useState(0)   // 开机阶段: 0 连接数据源 1 唤醒地球 2 校准晨昏线
-  const [disastersLoaded, setDisastersLoaded] = useState(false)
   const [booted, setBooted] = useState(false)     // 面板入场
   const [introGone, setIntroGone] = useState(false) // 标题谢幕
   const [soundOn, setSoundOn] = useState(true)    // 默认开启(首次手势解锁后真正发声)
@@ -669,7 +668,6 @@ export default function App() {
           setBootStage(2)
           setReady(true)
         },
-        onDisasters: () => setDisastersLoaded(true),
         onBooted: () => setBooted(true),
         onIntroDone: () => setIntroGone(true),
       })
@@ -783,16 +781,6 @@ export default function App() {
       {iss && (
         <div className="iss-chip" title="ISS · CelesTrak TLE 实时解算">
           <span className="iss-dot" />ISS · {iss.alt} KM · {iss.vel} KM/S
-        </div>
-      )}
-
-      {disastersLoaded && (
-        <div className="disaster-legend" aria-hidden="true">
-          <span><i style={{ background: '#ff9f0a' }} />{t.legendQuake}</span>
-          <span><i style={{ background: '#bf5af2' }} />{t.legendVolcano}</span>
-          <span><i style={{ background: '#64d2ff' }} />{t.legendStorm}</span>
-          <span><i style={{ background: '#ffd60a' }} />{t.legendWildfire}</span>
-          <span><i style={{ background: '#0a84ff' }} />{t.legendFlood}</span>
         </div>
       )}
 
