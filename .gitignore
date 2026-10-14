@@ -36,3 +36,5 @@ __pycache__/
 # 临时验证脚本
 *.tmp.mjs
 *.tmp.png
+*.tmp.mjs
+*.tmp.png
