@@ -6,6 +6,8 @@ Output:
 """
 import ipaddress
 import json
+import os
+import socket
 import sys
 import time
 import urllib.request
@@ -106,8 +108,43 @@ slim = {'type': 'FeatureCollection', 'features': [
     {'type': 'Feature', 'properties': {k: f['properties'].get(k) for k in keep},
      'geometry': f['geometry']} for f in feats]}
 geo_out = (ROOT / 'public' / 'datasets' / 'countries.geojson').resolve()
-assert str(geo_out).startswith(str(ROOT) + __import__('os').sep), f'输出越出项目根: {geo_out}'
+assert str(geo_out).startswith(str(ROOT) + os.sep), f'输出越出项目根: {geo_out}'
 geo_out.parent.mkdir(parents=True, exist_ok=True)
 with geo_out.open('w', encoding='utf-8') as fh:
     json.dump(slim, fh, ensure_ascii=False, separators=(',', ':'))
 print('wrote', geo_out, round(geo_out.stat().st_size / 1048576, 2), 'MB')
+
+# ---------- Populated places (zoom labels) ----------
+print('== Downloading populated places (Natural Earth 10m) ==')
+PLACES_URLS = [
+    'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson',
+    'https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_10m_populated_places_simple.geojson',
+]
+places_raw = None
+for u in PLACES_URLS:
+    try:
+        places_raw = http_get(u)
+        print('OK', u, len(places_raw) // 1024, 'KB')
+        break
+    except Exception as e:  # noqa: BLE001
+        print('FAIL', u, e)
+if places_raw is not None:
+    pf = json.loads(places_raw.decode('utf-8'))
+    rows = []
+    for f in pf.get('features', []):
+        p = f.get('properties') or {}
+        pop = p.get('pop_max') or p.get('pop_other') or 0
+        geom = f.get('geometry') or {}
+        coords = (geom.get('coordinates') or [None, None])[:2]
+        name = p.get('name') or p.get('nameascii')
+        if name and pop and isinstance(coords[0], (int, float)):
+            rows.append({'name': name, 'lat': round(coords[1], 2), 'lng': round(coords[0], 2), 'pop': float(pop)})
+    rows.sort(key=lambda r: -r['pop'])
+    places_out = (ROOT / 'public' / 'datasets' / 'places.json').resolve()
+    assert str(places_out).startswith(str(ROOT) + __import__('os').sep), f'输出越出项目根: {places_out}'
+    places_out.parent.mkdir(parents=True, exist_ok=True)
+    with places_out.open('w', encoding='utf-8') as fh:
+        json.dump(rows, fh, ensure_ascii=False, separators=(',', ':'))
+    print('wrote', places_out, round(places_out.stat().st_size / 1024, 1), 'KB,', len(rows), 'cities')
+else:
+    print('WARN: populated places unavailable; zoom labels limited to countries')

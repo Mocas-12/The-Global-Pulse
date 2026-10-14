@@ -1,7 +1,7 @@
 // App.jsx — The Global Pulse · 全球脉搏
 // 实时自然灾害与全球事件的监视地球: USGS 地震 / NASA EONET 灾害 / ISS 实时轨道
 // three/globe.gl 等重型依赖经 globeScene 动态加载, 首屏只渲染轻量外壳
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { T, LANGS } from './i18n'
 import { LINES } from './voice'
 import {
@@ -88,6 +88,7 @@ export default function App() {
   useEffect(() => { reducedRef.current = reducedMotion }, [reducedMotion])
   useEffect(() => { langRef.current = lang }, [lang])
 
+  const debugMode = useMemo(() => new URLSearchParams(window.location.search).has('debug'), [])
   const [geoLoaded, setGeoLoaded] = useState(false)
   const [geoError, setGeoError] = useState(false)
   const [geoAttempt, setGeoAttempt] = useState(0)
@@ -109,6 +110,18 @@ export default function App() {
 
   // ISS 实时遥测(场景加载成功后每秒回调)
   const [iss, setIss] = useState(null)
+
+  // 可选图层: 默认全部关闭, 手动开启避免首屏杂乱
+  const [flightsOn, setFlightsOn] = useState(false)
+  const [threatsOn, setThreatsOn] = useState(false)
+  const toggleFlights = useCallback((on) => {
+    setFlightsOn(on)
+    sceneRef.current?.toggleFlights(on)
+  }, [])
+  const toggleThreats = useCallback((on) => {
+    setThreatsOn(on)
+    sceneRef.current?.toggleThreats(on)
+  }, [])
 
   // 音频: 默认开启。浏览器自动播放策略不允许无手势出声, 但一旦解锁立即进入音乐;
   // 某些浏览器对回访放行, 挂载时也会尝试直接开播。
@@ -184,6 +197,7 @@ export default function App() {
         reducedMotion: reducedRef.current,
         home: HOME[langRef.current], // 开场只发生一次, 用初始语言
         features: featuresRef.current,
+        debug: debugMode,
         isAborted: () => disposed,
         onIss: (info) => setIss(info),
         onDisasters: () => setDisastersLoaded(true),
@@ -208,7 +222,7 @@ export default function App() {
       handle = null
       sceneRef.current = null
     }
-  }, [geoLoaded, geoAttempt])
+  }, [geoLoaded, geoAttempt, debugMode])
 
   // 语言写入分享链接(不产生浏览历史)
   useEffect(() => {
@@ -255,6 +269,23 @@ export default function App() {
       </div>
 
       <SloganLine key={lang} lang={lang} />
+
+      <div className="layers-panel">
+        <button
+          className={`layer-chip ${flightsOn ? 'on' : ''}`}
+          onClick={() => toggleFlights(!flightsOn)}
+          title={t.layerFlightsTitle}
+        >
+          ✈ {t.layerFlights}
+        </button>
+        <button
+          className={`layer-chip ${threatsOn ? 'on' : ''}`}
+          onClick={() => toggleThreats(!threatsOn)}
+          title={t.layerThreatsTitle}
+        >
+          🛡 {t.layerThreats}
+        </button>
+      </div>
 
       {disastersLoaded && (
         <div className="disaster-legend" aria-hidden="true">

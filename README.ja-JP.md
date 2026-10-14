@@ -47,6 +47,10 @@
 - 🛰️ **リアルタイム地震レイヤー** — USGS M2.5+ リアルタイムサマリー（2 分ごと更新）を赤い光点で表示、規模でサイズをマッピング。新たな M4.5+ イベントはリップルを発生
 - 🌋 **リアルタイム自然災害レイヤー** — NASA EONET オープンイベント：火山（紫）・台風嵐（シアン）・野火（黄）・洪水（青）、左下の凡例で一目瞭然
 - 🛰️ **ISS ライブ軌道** — CelesTrak TLE を毎秒 SGP4 で解算、尾を引く弧が宇宙ステーションに追従し、実際の高度と速度を表示
+- 🔎 **ズーム地名** — 中ズームで国名、接近すると都市名（Natural Earth 人口上位 400 都市）
+- ✈️ **リアルタイム航路** — OpenSky 世界スナップショット（2000+ 機）+ 針路/対地速度のデッドレコニングで滑らかに移動（毎時更新）
+- 🛡️ **サイバー脅威** — Abuse.ch FeodoTracker の C2 サーバー + OpenPhish フィッシング源をピンクの光点で表示（毎時更新）
+- 🎛️ **レイヤー切替** — 航路 / サイバー脅威はデフォルト OFF、右下から手動で ON
 - 🎞️ **センサーモード** — 数字キー 1-4 で標準 / ナイトビジョン NVG / サーマル FLIR / モノクロ Noir を切替（GLSL ポスト処理）
 - 🎬 **ブートシーケンス** — 実際のロード段階で進行するオービタルアニメーション → UI 言語に応じた地域へカメラが飛ぶ
 - 🎵 **生成背景音楽** — Web Audio でリアルタイム合成される軽快なオルゴール。音声ファイルはゼロ
@@ -66,7 +70,7 @@
 ## 🧠 仕組み
 
 1. **データパイプライン**：`scripts/fetch_data.py` が Natural Earth の最新国境 GeoJSON をダウンロードしてローカライズ
-2. **リアルタイムレイヤー**：USGS 地震（5 分ごと更新）と NASA EONET 災害（10 分ごと更新）はキーフリーの公開データ、失敗時は静かに縮退
+2. **リアルタイムレイヤー**：USGS 地震（2 分ごと更新）、NASA EONET 災害（10 分ごと）、OpenSky 航空機スナップショットと Abuse.ch/OpenPhish 脅威データ（毎時 CI 更新）は全てキーフリーの公開データ、失敗時は静かに縮退
 3. **ISS 軌道**：CelesTrak TLE + satellite.js を毎秒 SGP4 解算、尾を引く弧がステーションに追従
 4. **レンダリング**：globe.gl + three.js を遅延ロード。昼テクスチャが先に描画され、夜灯や雲は準備でき次第フェードイン。数字キー 1-4 でセンサー後処理スタイルを切替
 
@@ -89,6 +93,8 @@ The-Global-Pulse/
 │   ├── i18n.js              # 三言語コピー
 │   └── index.css            # Apple ガラステーマ（すりガラスパネル / ブートシーケンス）
 ├── e2e/smoke.spec.js        # Playwright スモークテスト
+├── .github/workflows/update-live.yml # 毎時フライト/脅威データ更新
+├── scripts/fetch_live.py    # フライトスナップショット + 脅威ジオロケーション（workflow から呼び出し）
 ├── tests/                   # 単体テスト（vitest）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国境（スクリプト生成）
@@ -141,6 +147,8 @@ npm run dev        # 開発：http://localhost:5173
 ## 📚 データソース
 
 - [USGS Earthquake Feed](https://earthquake.usgs.gov/earthquakes/feed/) — リアルタイム地震
+- [OpenSky Network](https://opensky-network.org/) — 世界の航空機状態スナップショット
+- [Abuse.ch FeodoTracker / OpenPhish](https://feodotracker.abuse.ch/) — C2 とフィッシング情報
 - [NASA EONET](https://eonet.gsfc.nasa.gov/) — 自然災害オープンイベント
 - [CelesTrak](https://celestrak.org/) — ISS 軌道要素
 - [Natural Earth](https://www.naturalearthdata.com/) — 行政境界

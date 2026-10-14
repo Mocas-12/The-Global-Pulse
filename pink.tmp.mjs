@@ -1,0 +1,11 @@
+import { chromium } from '@playwright/test'
+const b = await chromium.launch()
+const page = await b.newPage({ viewport: { width: 1440, height: 900 } })
+await page.goto('http://localhost:5200/The-Global-Pulse/?lang=en')
+await page.waitForSelector('.app-root.ready', { timeout: 60000 })
+await page.waitForTimeout(4000)
+await page.locator('.layer-chip').nth(1).click()
+await page.waitForTimeout(2500)
+await page.screenshot({ path: 'pink.tmp.png' })
+await b.close()
+console.log('done')

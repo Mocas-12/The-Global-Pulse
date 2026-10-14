@@ -48,6 +48,7 @@ export async function createGlobeScene(container, opts = {}) {
     home = { lat: 24, lng: 105 },
     isAborted = () => false,
     features = [],       // Natural Earth 国界要素(App 负责加载)
+    debug = false,       // ?debug: 暴露 window.__globeDebug 供 E2E 断言
     onDisasters,         // () 自然灾害数据就绪(EONET)
     onIss,               // ({alt, vel}|null) ISS 实时遥测(加载成功后每秒)
     onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
@@ -369,6 +370,22 @@ export async function createGlobeScene(container, opts = {}) {
     world.pointOfView({ lat: pov.lat, lng: pov.lng, altitude: mobile ? 3.4 : 2.35 }, 900)
   }
 
+  // ——— 点击语义: 点地球停自转, 点地球以外(星空)恢复自转 ———
+  // (globe.gl 此构建的 onGlobeClick 射线不触发, 改用 toGlobeCoords 自行命中检测)
+  let downX = 0
+  let downY = 0
+  const onDown = (e) => {
+    downX = e.clientX
+    downY = e.clientY
+  }
+  const onClick = (e) => {
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return // 拖拽不算点击
+    const hit = world.toGlobeCoords(e.clientX, e.clientY)
+    world.controls().autoRotate = hit ? false : introDone && !reducedMotion
+  }
+  container.addEventListener('pointerdown', onDown)
+  container.addEventListener('click', onClick)
+
   // ——— 开场: 相机从深空飞入, 标题渐显 ———
   world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
   onIntroStart?.()
@@ -417,6 +434,22 @@ export async function createGlobeScene(container, opts = {}) {
     stars.mat.uniforms.uTime.value = time
     rings.mat.uniforms.uTime.value = time
 
+    // 航班航位推算: 快照位置按航向/地速逐帧外推(快照每小时刷新)
+    if (flightDots.on && flightDots.geo && flightDots.items.length) {
+      const tSec = (Date.now() - flightDots.fetchedAt) / 1000
+      const arr = flightDots.geo.attributes.position.array
+      const n = Math.min(flightDots.items.length, arr.length / 3)
+      for (let i = 0; i < n; i++) {
+        const f = flightDots.items[i]
+        const kmN = Math.cos((f.track * Math.PI) / 180) * (f.gs * 3.6) * (tSec / 3600)
+        const kmE = Math.sin((f.track * Math.PI) / 180) * (f.gs * 3.6) * (tSec / 3600)
+        const lat = f.lat + kmN / 111.32
+        const lng = f.lng + kmE / (111.32 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)))
+        placeAt(arr, i, lat, lng, f.alt)
+      }
+      flightDots.geo.attributes.position.needsUpdate = true
+    }
+
     // 闪光衰减
     let dirty = false
     for (let i = 0; i < MAX; i++) {
@@ -438,11 +471,139 @@ export async function createGlobeScene(container, opts = {}) {
   }
   raf = requestAnimationFrame(loop)
 
+  // ——— 缩放地名标签: 中距离国名, 近距离城市名 ———
+  let labelsTimer = 0
+  let cityLabels = []
+  fetch(`${BASE}datasets/places.json`)
+    .then((r) => (r.ok ? r.json() : []))
+    .then((rows) => { if (!dead && Array.isArray(rows)) { cityLabels = rows; queueLabels() } })
+    .catch(() => {})
+  const refreshLabels = () => {
+    if (dead) return
+    const alt = world.pointOfView().altitude || 3
+    let items = []
+    if (alt < 1.9) {
+      // 国名: 取要素自带 NAME 与标注点
+      items = features
+        .filter((f) => f.properties?.NAME && f.properties?.LABEL_X != null)
+        .map((f) => ({
+          lat: f.properties.LABEL_Y ?? (f.__bbox ? (f.__bbox[1] + f.__bbox[3]) / 2 : 0),
+          lng: f.properties.LABEL_X,
+          name: f.properties.NAME,
+          size: 0.32,
+        }))
+    }
+    if (alt < 0.85 && !dead) {
+      // 城市名: 人口前 400 城
+      items = items.concat(cityLabels.slice(0, 400).map((c) => ({
+        lat: c.lat, lng: c.lng, name: c.name, size: 0.24,
+      })))
+    }
+    world.labelsData(items)
+  }
+  const queueLabels = () => {
+    clearTimeout(labelsTimer)
+    labelsTimer = setTimeout(refreshLabels, 250)
+  }
+  world.labelsData([])
+    .labelText((d) => d.name)
+    .labelLat((d) => d.lat)
+    .labelLng((d) => d.lng)
+    .labelSize((d) => d.size)
+    .labelDotOrientation(() => 'bottom')
+    .labelColor(() => 'rgba(235, 235, 245, 0.55)')
+    .labelResolution(2)
+  world.onZoom(queueLabels)
+
+  // ——— 航线(OpenSky 快照 + 航位推算)与网络威胁(FeodoTracker/OpenPhish) ———
+  // 均默认关闭, 由 handle.toggleFlights/toggleThreats 开启
+  const R_GLOBE = 100
+  const flightDots = { points: null, geo: null, items: [], fetchedAt: 0, on: false }
+  const threatDots = { points: null, geo: null, on: false }
+
+  const buildPoints = (color, size) => {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3))
+    const mat = new THREE.PointsMaterial({ color, size: size * PR, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false })
+    const points = new THREE.Points(geo, mat)
+    points.visible = false
+    points.frustumCulled = false
+    return { points, geo }
+  }
+
+  const placeAt = (arr, i, lat, lng, alt) => {
+    const v = latLngToVec3(lat, lng, R_GLOBE * (1 + (alt || 0) * 0.001 + 0.004))
+    arr[i * 3] = v.x
+    arr[i * 3 + 1] = v.y
+    arr[i * 3 + 2] = v.z
+  }
+
+  const toggleFlights = (on) => {
+    flightDots.on = on
+    if (on && !flightDots.geo) {
+      fetch(`${BASE}datasets/flights.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (dead || !data || !flightDots.on) return
+          flightDots.items = data.flights || []
+          flightDots.fetchedAt = data.fetchedAt || Date.now()
+          const n = flightDots.items.length
+          if (!flightDots.geo && n) {
+            const built = buildPoints(0x5e5ce6, 2.0)
+            flightDots.points = built.points
+            flightDots.geo = built.geo
+            const arr = new Float32Array(n * 3)
+            flightDots.items.forEach((f, i) => {
+              // alt_baro 英尺 -> 地球半径单位(35000ft ≈ +0.167R)
+              const altUnits = Math.max(0, f.alt || 0) * 0.3048 / 6371
+              placeAt(arr, i, f.lat, f.lng, altUnits * 1000)
+            })
+            built.geo.setAttribute('position', new THREE.BufferAttribute(arr, 3))
+            built.geo.setDrawRange(0, n)
+            scene.add(flightDots.points)
+            flightDots.points.visible = flightDots.on
+          }
+        })
+        .catch(() => {})
+    }
+    if (flightDots.points) flightDots.points.visible = on
+  }
+
+  const toggleThreats = (on) => {
+    threatDots.on = on
+    if (on && !threatDots.geo) {
+      fetch(`${BASE}datasets/threats.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (dead || !data || !threatDots.on) return
+          const items = data.points || []
+          const built = buildPoints(0xff375f, 3.2)
+          threatDots.points = built.points
+          threatDots.geo = built.geo
+          const arr = built.geo.attributes.position.array
+          items.forEach((d, i) => placeAt(arr, i, d.lat, d.lng, 0))
+          built.geo.setDrawRange(0, items.length)
+          built.geo.attributes.position.needsUpdate = true
+          scene.add(threatDots.points)
+          threatDots.points.visible = true
+        })
+        .catch(() => {})
+    }
+    if (threatDots.points) threatDots.points.visible = on
+  }
+
   onReady?.()
+
+  // 测试钩子: ?debug 暴露只读状态(E2E 断言自转语义)
+  if (debug) {
+    window.__globeDebug = () => ({ autoRotate: world.controls().autoRotate, introDone })
+  }
 
   return {
     setMobile,
     setStyle,
+    toggleFlights,
+    toggleThreats,
     dispose() {
       dead = true
       timers.forEach(clearTimeout)
@@ -466,6 +627,13 @@ export async function createGlobeScene(container, opts = {}) {
       scene.remove(rings.points)
       rings.geom.dispose()
       rings.mat.dispose()
+      clearTimeout(labelsTimer)
+      container.removeEventListener('pointerdown', onDown)
+      container.removeEventListener('click', onClick)
+      if (flightDots.points) scene.remove(flightDots.points)
+      if (threatDots.points) scene.remove(threatDots.points)
+      flightDots.geo?.dispose()
+      threatDots.geo?.dispose()
       for (const tex of textures) tex.dispose()
       world._destructor?.()
     },

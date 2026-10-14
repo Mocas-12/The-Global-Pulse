@@ -30,6 +30,30 @@ test('传感器风格: 数字键 1-4 切换, 徽章随模式显隐', async ({ pa
   await expect(page.locator('.sensor-badge')).toHaveCount(0)
 })
 
+test('自转语义: 点地球停, 点星空恢复', async ({ page }) => {
+  await page.goto(`${PATH}?debug`)
+  await expect(page.locator('.app-root.ready')).toBeVisible({ timeout: 60_000 })
+  await page.waitForTimeout(7000) // 等开场结束
+  expect(await page.evaluate(() => window.__globeDebug().autoRotate)).toBe(true)
+  await page.mouse.click(720, 430) // 点地球
+  await page.waitForTimeout(400)
+  expect(await page.evaluate(() => window.__globeDebug().autoRotate)).toBe(false)
+  await page.mouse.click(150, 120) // 点星空
+  await page.waitForTimeout(400)
+  expect(await page.evaluate(() => window.__globeDebug().autoRotate)).toBe(true)
+})
+
+test('图层开关: 航线/威胁默认关闭, 点击开启', async ({ page }) => {
+  await page.goto(PATH)
+  await expect(page.locator('.app-root.ready')).toBeVisible({ timeout: 60_000 })
+  await expect(page.locator('.layer-chip')).toHaveCount(2)
+  await expect(page.locator('.layer-chip.on')).toHaveCount(0)
+  await page.locator('.layer-chip').first().click()
+  await expect(page.locator('.layer-chip.on')).toHaveCount(1)
+  await page.locator('.layer-chip').nth(1).click()
+  await expect(page.locator('.layer-chip.on')).toHaveCount(2)
+})
+
 test('StrictMode: 仅挂载一个地球实例(仅 dev 项目)', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'dev', '双挂载只发生在开发模式')
   await page.goto(PATH)

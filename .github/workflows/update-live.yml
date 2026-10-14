@@ -1,0 +1,38 @@
+name: Update live layers
+
+# 每小时刷新航班快照与网络威胁数据(直接提交, 触发重新部署保证线上近实时)
+on:
+  schedule:
+    - cron: '15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-live
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/fetch_live.py
+      - name: Commit refreshed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/datasets/flights.json public/datasets/threats.json
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "data: hourly live layers refresh"
+            git pull --rebase origin main
+            git push
+          fi

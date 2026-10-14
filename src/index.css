@@ -396,6 +396,41 @@ body {
 }
 .sensor-badge:hover { background: rgba(48, 209, 88, 0.24); }
 
+/* ————————————————— 图层开关面板 ————————————————— */
+.layers-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 56px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: flex-end;
+}
+.layer-chip {
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.layer-chip:hover { background: var(--fill-hover); color: var(--text); }
+.layer-chip.on {
+  background: rgba(10, 132, 255, 0.18);
+  border-color: rgba(10, 132, 255, 0.45);
+  color: #8ecbff;
+}
+.layer-chip.on:hover { background: rgba(10, 132, 255, 0.28); }
+
 /* ————————————————— 底部提示 ————————————————— */
 .hint {
   position: fixed;

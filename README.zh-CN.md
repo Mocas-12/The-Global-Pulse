@@ -47,6 +47,10 @@
 - 🛰️ **实时地震层** — USGS M2.5+ 实时摘要（2 分钟刷新），红色光点按震级映射大小；新 M4.5+ 事件触发涟漪
 - 🌋 **实时自然灾害层** — NASA EONET 开放事件：火山（紫）、台风风暴（青）、野火（黄）、洪水（蓝），左下角图例一眼可读
 - 🛰️ **ISS 实时轨道** — CelesTrak TLE 逐秒 SGP4 解算，拖尾弧线跟随空间站，右下角显示真实高度与速度
+- 🔎 **缩放地名** — 中距离浮现国名，拉近后出现城市名（Natural Earth 人口前 400 城）
+- ✈️ **实时航线** — OpenSky 全球航班快照（2000+ 架）+ 航向/地速航位推算，飞行连续平滑（每小时快照刷新）
+- 🛡️ **网络威胁** — Abuse.ch FeodoTracker C2 服务器 + OpenPhish 钓鱼源，地理定位后粉色光点标示（每小时刷新）
+- 🎛️ **图层开关** — 航线 / 网络威胁默认关闭，右下角手动开启，避免首屏杂乱
 - 🎞️ **传感器风格** — 数字键 1-4 切换 标准 / 夜视 NVG / 热成像 FLIR / 黑白 Noir（GLSL 后处理）
 - 🎬 **开机动画** — 真实加载阶段驱动的轨道环开机序列 → 深空相机飞向界面语言对应的区域
 - 🎵 **生成式背景音乐** — Web Audio 实时合成的轻快音乐盒，零音频文件；首次交互立即响起
@@ -66,7 +70,7 @@
 ## 🧠 工作原理
 
 1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON 并本地化
-2. **实时图层**：USGS 地震（5 分钟刷新）与 NASA EONET 灾害（10 分钟刷新）均为免密钥公开数据，失败静默降级
+2. **实时图层**：USGS 地震（2 分钟刷新）、NASA EONET 灾害（10 分钟刷新）、OpenSky 航班快照与 Abuse.ch/OpenPhish 威胁数据（每小时 workflow 刷新入库）均为免密钥公开数据，失败静默降级
 3. **ISS 轨道**：CelesTrak TLE + satellite.js 逐秒 SGP4 解算，拖尾弧线跟随空间站
 4. **渲染**：globe.gl + three.js 按需异步加载；白天贴图先到先渲染，夜灯/云层就绪后渐入；数字键 1-4 切换传感器后处理风格
 
@@ -89,6 +93,8 @@ The-Global-Pulse/
 │   ├── i18n.js              # 三语文案
 │   └── index.css            # Apple 玻璃主题（磨砂面板 / 开机序列）
 ├── e2e/smoke.spec.js        # Playwright 冒烟测试
+├── .github/workflows/update-live.yml # 每小时刷新航班/威胁数据
+├── scripts/fetch_live.py    # 航班快照 + 威胁地理定位（由 workflow 调用）
 ├── tests/                   # 单元测试（vitest）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国界（由脚本生成）
@@ -141,6 +147,8 @@ npm run dev        # 开发：http://localhost:5173
 ## 📚 数据来源
 
 - [USGS Earthquake Feed](https://earthquake.usgs.gov/earthquakes/feed/) — 实时地震
+- [OpenSky Network](https://opensky-network.org/) — 全球航班状态快照
+- [Abuse.ch FeodoTracker / OpenPhish](https://feodotracker.abuse.ch/) — C2 与钓鱼情报
 - [NASA EONET](https://eonet.gsfc.nasa.gov/) — 自然灾害开放事件
 - [CelesTrak](https://celestrak.org/) — ISS 轨道根数
 - [Natural Earth](https://www.naturalearthdata.com/) — 行政边界
