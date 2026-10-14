@@ -4,7 +4,7 @@
 
 # The Global Pulse
 
-**全球人口脉搏 —— 真实国界 · 真实数据 · 实时推演的 3D 生命地球**
+**全球脉搏 —— 真实国界 · 实时自然灾害 · Apple 玻璃质感的 3D 监视地球**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live-222?logo=githubpages&logoColor=white)](https://mocas-12.github.io/The-Global-Pulse/)
 [![Deploy](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml)
@@ -12,14 +12,14 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
 [![Three.js](https://img.shields.io/badge/Three.js-183-000?logo=threedotjs&logoColor=white)](https://threejs.org)
-[![Data](https://img.shields.io/badge/数据-世界银行_2024-00b0ff)](https://data.worldbank.org/)
+[![Data](https://img.shields.io/badge/灾害-USGS·NASA_EONET-00b0ff)](https://earthquake.usgs.gov/)
 [![Borders](https://img.shields.io/badge/边界-Natural_Earth-2affb4)](https://www.naturalearthdata.com/)
 
 **[🌐 在线访问（GitHub Pages）](https://mocas-12.github.io/The-Global-Pulse/)**
 
 [English](./README.md) | **简体中文** | [日本語](./README.ja-JP.md)
 
-*打开页面 → 观看地球脉搏起伏 → 点击任意国家查看实时详情*
+*打开页面 → 看见此刻的地震、火山与风暴 → 按数字键切换情报视角*
 
 </div>
 
@@ -42,24 +42,17 @@
 ## ✨ 功能特性
 
 - 🌍 **真实地球** — NASA Blue Marble 4K 昼面贴图 + Black Marble 夜面城市灯光 + 云层与大气散射辉光，公版影像本地化、无外网依赖
-- ☀️ **实时昼夜晨昏线** — 由真实 UTC 时间推算太阳直射点，自定义着色器逐帧渲染昼夜过渡、晨昏暖橙余晖与海面太阳耀斑，此刻哪里是白天一目了然
-- 🗺️ **真实国界** — Natural Earth 110m 行政边界，177 个国家/地区精确轮廓渲染，人口对数淡着色、悬停高亮浮起
-- 📊 **真实数据** — 世界银行 2024 年人口 / 粗出生率 / 粗死亡率（SP.POP.TOTL / SP.DYN.CBRT.IN / SP.DYN.CDRT.IN），覆盖 217 个经济体
-- 💓 **实时推演** — 按各国真实比率逐秒推演全球出生 / 死亡 / 净增长，脉冲以闪光 + 涟漪冲击波的形式落点在**真实国境内**，并向真实人口稠密的城市聚拢
-- ⏳ **时间轴回放** — 基于 UN WPP 真实历史序列（1950 → 2024，经 Our World in Data 整理），拖动或自动播放：世界人口、出生/死亡率、脉冲速率与国家出生排名随真实历史变化，看婴儿潮与光带迁移
-- 🔗 **人性化细节** — "自你打开本页"净增数自动换算人类尺度（教室 / 学校 / 邮轮 / 城市）；选中国家可一键复制分享链接，打开即飞往该国
-- 🛰 **实时图层** — USGS 实时地震、NASA EONET 自然灾害（火山 / 台风风暴 / 野火 / 洪水，四色光点 + 图例）、ISS 实时轨道（CelesTrak TLE 逐秒解算），全部免密钥
-- 🎞 **传感器风格** — 数字键 1-4 切换 标准 / 夜视 NVG / 热成像 FLIR / 黑白 Noir（GLSL 后处理，致敬 OSINT 情报视图）
-- 🎐 **静默时刻** — 按下空格，世界停下：数字冻结、心跳暂停，一句"此刻，世界仍在你停下的这一秒里继续"浮现在近黑的屏幕上；停留满 1 / 5 / 15 分钟时，屏幕会用你的真实会话计数低语一次
-- 🖋 **流转的诗** — 副标题不再是固定一句，而是每 88 秒轮换的三语手写短句；开场相机飞向界面语言对应的区域，地球第一眼就"认得你"
-- 🎬 **电影化开场** — 开机轨道动画（真实加载阶段驱动进度）→ 深空相机飞入 + 标题渐显谢幕 + 面板错峰入场；程序化闪烁星空
-- 🗺️ **国家详情** — 点击任意国家相机飞往、高亮浮起，查看人口、排名、今日出生/死亡、出生/死亡率、全球占比（数据年份标注）
-- 🩺 **全球健康面板** — 心血管疾病、癌症、烟草、5 岁以下儿童死亡等 12 类年度死亡推演计数
-- 📰 **滚动快讯** — 基于推演数据的实时国别新生 / 全球死因播报
-- 🈶 **三语界面** — 中文 / English / 日本語
-- 🎵 **生成式背景音乐** — Web Audio 实时合成的轻快音乐盒（Cmaj9 四和弦垫 + 五声音阶拨弦 + 轻混响），零音频文件；默认开启，首次交互立即响起（浏览器自动播放策略所限），可点击右上角静音
-- ⚡ **秒开优化** — 3D 场景按需异步加载（首屏 JS gzip 约 78KB）+ 全部贴图 WebP 化 + 白天贴图先行渲染、夜灯/云层渐入
-- 🛡️ **质量门禁** — CI 四道关卡（ESLint → 引擎与组件单元测试 → Playwright 冒烟×构建产物/开发服务器双环境 → 构建）全绿才发布；每 6 小时对线上站点自动拨测，失败邮件通知；全局 ErrorBoundary 兜底与 `prefers-reduced-motion` 降级
+- ☀️ **实时昼夜晨昏线** — 由真实 UTC 时间推算太阳直射点，自定义着色器逐帧渲染昼夜过渡与海面耀斑，此刻哪里是白天一目了然
+- 🗺️ **真实国界** — Natural Earth 110m 行政边界，中性石墨蓝淡着色
+- 🛰️ **实时地震层** — USGS 过去 24 小时全球地震，琥珀光点按震级映射大小；新 M4.5+ 事件触发涟漪
+- 🌋 **实时自然灾害层** — NASA EONET 开放事件：火山（紫）、台风风暴（青）、野火（黄）、洪水（蓝），左下角图例一眼可读
+- 🛰️ **ISS 实时轨道** — CelesTrak TLE 逐秒 SGP4 解算，拖尾弧线跟随空间站，右下角显示真实高度与速度
+- 🎞️ **传感器风格** — 数字键 1-4 切换 标准 / 夜视 NVG / 热成像 FLIR / 黑白 Noir（GLSL 后处理）
+- 🎬 **开机动画** — 真实加载阶段驱动的轨道环开机序列 → 深空相机飞向界面语言对应的区域
+- 🎵 **生成式背景音乐** — Web Audio 实时合成的轻快音乐盒，零音频文件；首次交互立即响起
+- 🎐 **轮换的诗** — 每 88 秒轮换的三语手写短句
+- ⚡ **秒开优化** — 3D 场景按需异步加载（首屏 JS gzip 约 67KB）+ WebP 贴图 + 白天贴图先行渲染
+- 🛡️ **质量门禁** — CI 四道关卡（ESLint → 单测 → Playwright 冒烟×双环境 → 构建）全绿才发布；每 6 小时线上拨测
 
 ## 🎨 界面设计
 
@@ -67,25 +60,15 @@
 | --- | --- |
 | 主题 | Apple 玻璃：纯黑基底 + 磨砂玻璃面板 + 发丝线描边，程序化闪烁星空 |
 | 面板 | 磨砂玻璃：blur(28px) saturate(1.7) + 22px 大圆角 + 深阴影（visionOS 质感） |
-| 强调色 | 系统蓝 `#0a84ff`；出生绿 `#30d158` · 死亡红 `#ff453a`（iOS 系统语义色） |
-| 主视觉 | 3D 写实地球：NASA 昼/夜贴图 + 实时晨昏线 + 大气散射 + 云层，国家以细描边 + 淡着色呈现 |
-| 动效 | 出生/死亡闪光 + 涟漪冲击波；开场相机飞入与标题谢幕；rAF 数字滚动补间；`prefers-reduced-motion` 自动降级 |
-| 布局 | 顶部滚动快讯 + 左侧统计面板 + 点击弹出国家卡片（相机飞往） |
+| 强调色 | iOS 系统色：地震橙 `#ff9f0a` · 火山紫 `#bf5af2` · 风暴青 `#64d2ff` · 野火黄 `#ffd60a` · 洪水蓝 `#0a84ff` |
+| 主视觉 | 3D 写实地球：NASA 昼/夜贴图 + 实时晨昏线 + 大气散射，实时事件光点覆盖 |
 
 ## 🧠 工作原理
 
-```mermaid
-flowchart LR
-    A[📦 数据管道<br/>世界银行 · Natural Earth] --> B[⚙️ 推演引擎<br/>真实比率逐秒积分]
-    B --> C[🌍 3D 地球渲染<br/>国境内加权随机落点]
-    C --> D[📊 面板与快讯<br/>出生 · 死亡 · 死因 · 国家详情]
-```
-
-1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON 与城市点位，并拉取世界银行三项指标 2015 年以来全部数据、取各国最新值，另取 UN WPP 历史序列（1950–2023，经 Our World in Data）
-2. **实时推演**：以世界银行年度粗出生率 / 死亡率为速率，从当日零点 / 年初起积分得到"今日 / 今年"数字；世界人口基数取各国 2024 年估计值之和（约 82.1 亿）
-3. **落点采样**：脉冲光点按各国出生 / 死亡率加权选国，再在国家内按城市人口加权选点、高斯散布（溢出国界自动收缩半径重试），并保留两成均匀采样代表乡村人口
-4. **渲染交互**：globe.gl + three.js 按需异步加载（`src/engine/globeScene.js`，与数据下载并行）；`src/engine/globeFX.js` 提供自定义着色器 —— 依低精度天文算法（±0.01°）由 UTC 实时推算太阳直射点，逐帧混合昼/夜贴图、海面高光与大气散射；白天贴图先到先渲染，夜灯/云层就绪后渐入；点击国家相机飞往并弹出详情卡片
-5. **生成式背景音乐**：Web Audio 实时合成轻快音乐盒（四和弦垫 + 五声音阶拨弦），无任何音频文件
+1. **数据管道**：`scripts/fetch_data.py` 下载 Natural Earth 最新国界 GeoJSON 并本地化
+2. **实时图层**：USGS 地震（5 分钟刷新）与 NASA EONET 灾害（10 分钟刷新）均为免密钥公开数据，失败静默降级
+3. **ISS 轨道**：CelesTrak TLE + satellite.js 逐秒 SGP4 解算，拖尾弧线跟随空间站
+4. **渲染**：globe.gl + three.js 按需异步加载；白天贴图先到先渲染，夜灯/云层就绪后渐入；数字键 1-4 切换传感器后处理风格
 
 ## 📁 项目结构
 
@@ -94,32 +77,23 @@ The-Global-Pulse/
 ├── index.html               # 单页入口（og/twitter 分享 meta）
 ├── logo.svg                 # 项目 Logo
 ├── scripts/
-│   └── fetch_data.py        # 数据管道：国界 + 世界银行指标
+│   └── fetch_data.py        # 数据管道：Natural Earth 国界
 ├── src/
 │   ├── main.jsx             # 挂载入口（StrictMode + ErrorBoundary）
 │   ├── ErrorBoundary.jsx    # 全局兜底：渲染异常时显示错误与重载
-│   ├── App.jsx              # 主应用（面板 / 交互 / 音频解锁 / 场景装配）
-│   ├── engine/worldEngine.js # 数据引擎：真实比率 → 实时推演 + 国境内随机采样
-│   ├── engine/globeFX.js    # 视觉引擎：昼夜光照 / 大气 / 云层 / 星空 / 涟漪着色器
-│   ├── engine/globeScene.js # 地球场景：初始化 / 开场动画 / 渲染循环（按需异步加载）
-│   ├── audio/audioEngine.js # Web Audio 合成音效
-│   ├── data/worldBankData.json # 世界银行 2024 指标（由脚本生成）
+│   ├── App.jsx              # 主应用（开机序列 / 图例 / 传感器 / 音频解锁）
+│   ├── engine/globeScene.js # 地球场景：图层 / ISS / 传感器 / 渲染循环（按需异步加载）
+│   ├── engine/globeFX.js    # 视觉引擎：昼夜光照 / 大气 / 星空 / 传感器着色器
+│   ├── audio/audioEngine.js # Web Audio 生成式背景音乐
+│   ├── voice.js             # 轮换的诗（三语）
 │   ├── i18n.js              # 三语文案
-│   ├── voice.js             # 页面的"声音": 轮换诗 / 静默时刻 / 里程碑低语
-│   ├── humanize.js          # 会话净增数的人类尺度换算
-│   ├── news.js              # 滚动快讯生成
-│   └── index.css            # Apple 玻璃主题（磨砂面板 / 开场序列）
-├── e2e/smoke.spec.js        # Playwright 冒烟测试（移动端 / ?pause 冻结 / StrictMode 单实例）
-├── playwright.config.js     # E2E 配置：构建产物 + 开发服务器双环境
-├── playwright.prod.config.js # 线上拨测配置（对生产站点跑）
-├── tests/worldEngine.test.js # 引擎单测（几何采样 / 时间积分 / 数据兜底）
-├── tests/components.test.jsx # 组件单测（翻牌数字 / 快讯 / 面板 / 错误边界）
+│   └── index.css            # Apple 玻璃主题（磨砂面板 / 开机序列）
+├── e2e/smoke.spec.js        # Playwright 冒烟测试
+├── tests/                   # 单元测试（vitest）
 └── public/
     ├── datasets/countries.geojson # Natural Earth 国界（由脚本生成）
-    ├── datasets/populatedPlaces.json # 城市点位（脉冲聚类权重，由脚本生成）
-    ├── datasets/unSeries.json # UN WPP 1950–2023 历史序列（由脚本生成）
     ├── og-card.png          # 分享卡片图
-    └── img/                 # NASA 地球贴图（WebP）：昼 4K / 夜景灯光 / 水面遮罩 / 云层
+    └── img/                 # NASA 地球贴图（WebP）
 ```
 
 ## 🚀 快速开始
@@ -131,63 +105,46 @@ npm install
 npm run dev        # 开发：http://localhost:5173
 ```
 
-> 需要 Node ≥ 22（仓库用 `.nvmrc` 固定 24，与 CI 一致）；本地跑 E2E 前先 `npx playwright install chromium`。
+> 需要 Node ≥ 22（`.nvmrc` 固定 24，与 CI 一致）；本地跑 E2E 前先 `npx playwright install chromium`。
 
 | 命令 | 说明 |
 | --- | --- |
 | `npm run dev` | 启动开发服务器 |
 | `npm run build` | 构建到 `dist/` |
 | `npm run lint` | ESLint 检查 |
-| `npm test` | 运行单元测试（引擎 + 组件，vitest） |
+| `npm test` | 运行单元测试（vitest） |
 | `npm run e2e` | 运行 Playwright 冒烟测试（构建产物 + 开发服务器双环境） |
-| `npm run preview` | 本地预览构建产物 |
-| `python scripts/fetch_data.py` | 重新拉取国界与世界银行数据（需 Python 3） |
+| `python scripts/fetch_data.py` | 重新拉取 Natural Earth 国界（需 Python 3） |
 
-> 推送（push）到 `main` 分支后，GitHub Actions 依次执行 lint → 单测 → E2E → 构建，全部通过才发布到 GitHub Pages。另有每 6 小时对线上站点跑冒烟测试的拨测工作流（失败邮件通知），以及每月 3 日自动重跑数据管道、有变更时自动开 PR 的工作流。
+> 推送到 `main` 后，GitHub Actions 依次执行 lint → 单测 → E2E → 构建，全部通过才发布到 GitHub Pages。另有每 6 小时对线上站点自动拨测的工作流。
 
 ## 🔢 数据与口径
 
-- 页面上的"今日 / 今年"数字是**模型推演值**：以世界银行年度率为速率、从当日零点 / 年初起积分
-- 时间轴回放（1950 → 2024）使用 **UN WPP 真实历史估计**（经 Our World in Data 整理）：回放时世界人口与出生/死速率为该年真实估计值，"今日"按该年速率与当日时钟比例折算；国家详情卡仍为世界银行 2024 数据
-- 世界人口基数取各国 2024 年估计值之和（约 82.1 亿），与联合国世界人口时钟量级一致
-- 死亡原因年度基数来自 WHO Global Health Estimates、UN IGME、UNAIDS、WHO、UNODC 等公开估计，数值为近似值，仅用于可视化展示
-- 所有实时数字均为基于权威年度统计的推演，不代表逐秒真实统计
+- 地震数据来自 USGS 过去 24 小时实时摘要；火山 / 风暴 / 野火 / 洪水来自 NASA EONET 过去 30 天开放事件
+- ISS 位置由 CelesTrak TLE 经 SGP4 模型逐秒解算，高度与速度为模型计算值
+- 所有事件在地图上的落点为真实坐标；光点大小仅作视觉示意
 
 ## ❓ 常见问题
 
 <details>
-<summary><b>页面上的数字是真实的逐秒统计吗</b></summary>
+<summary><b>如何切换情报视角</b></summary>
 
-- 不是。数字以世界银行年度率为速率从当日零点 / 年初积分推演，量级与权威时钟一致，但不是逐秒真实计数
+- 数字键 1-4：标准 / 夜视 NVG / 热成像 FLIR / 黑白 Noir；右上角徽章点击或按 1 恢复标准
 </details>
 
 <details>
-<summary><b>为什么有些国家点击没有数据</b></summary>
+<summary><b>如何静音</b></summary>
 
-- 世界银行指标覆盖 217 个经济体，个别地区无数据时面板会标注数据缺失
-</details>
-
-<details>
-<summary><b>如何更新到最新数据</b></summary>
-
-- 仓库内已有每月 3 日自动运行 `scripts/fetch_data.py` 并在数据有变更时开 PR 的工作流，合并即可
-- 也可以本地安装 Python 3 后运行 `python scripts/fetch_data.py` 手动重新生成
-</details>
-
-<details>
-<summary><b>音效如何静音</b></summary>
-
-- 音乐默认开启，浏览器自动播放策略下会在首次交互时立即响起；点击页面右上角喇叭图标可静音。音乐为生成式音乐盒（四和弦 + 五声音阶拨弦），由 Web Audio 实时合成，无任何音频文件
+- 背景音乐默认开启，浏览器自动播放策略下会在首次交互时立即响起；点击右上角喇叭图标可静音
 </details>
 
 ## 📚 数据来源
 
-- [World Bank Open Data](https://data.worldbank.org/) — 人口与粗出生/死亡率
-- [UN World Population Prospects 2024 (via Our World in Data)](https://ourworldindata.org/population) — 1950–2023 历史人口与出生/死亡率序列
-- [Natural Earth](https://www.naturalearthdata.com/) — 行政边界与城市点位
-- [NASA Blue Marble Next Generation](https://visibleearth.nasa.gov/collection/1484/blue-marble-next-generation) — 昼面地表贴图（公版）
-- [NASA Black Marble — Earth at Night](https://earthobservatory.nasa.gov/features/NightLights) — 夜面城市灯光贴图（公版）
-- [WHO / UN IGME / UNAIDS / UNODC](https://www.who.int/data/global-health-estimates) — 死亡原因估计
+- [USGS Earthquake Feed](https://earthquake.usgs.gov/earthquakes/feed/) — 实时地震
+- [NASA EONET](https://eonet.gsfc.nasa.gov/) — 自然灾害开放事件
+- [CelesTrak](https://celestrak.org/) — ISS 轨道根数
+- [Natural Earth](https://www.naturalearthdata.com/) — 行政边界
+- [NASA Blue Marble / Black Marble](https://visibleearth.nasa.gov/) — 昼/夜地表贴图（公版）
 
 ## 📄 许可证
 

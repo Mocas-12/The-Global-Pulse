@@ -4,7 +4,7 @@
 
 # The Global Pulse
 
-**The pulse of the global population — real borders · real data · a 3D living Earth simulated in real time**
+**The global pulse — real borders · real-time natural disasters · an Apple-glass 3D monitoring globe**
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live-222?logo=githubpages&logoColor=white)](https://mocas-12.github.io/The-Global-Pulse/)
 [![Deploy](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mocas-12/The-Global-Pulse/actions/workflows/deploy.yml)
@@ -12,20 +12,20 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)](https://vite.dev)
 [![Three.js](https://img.shields.io/badge/Three.js-183-000?logo=threedotjs&logoColor=white)](https://threejs.org)
-[![Data](https://img.shields.io/badge/Data-World_Bank_2024-00b0ff)](https://data.worldbank.org/)
+[![Data](https://img.shields.io/badge/Disasters-USGS·NASA_EONET-00b0ff)](https://earthquake.usgs.gov/)
 [![Borders](https://img.shields.io/badge/Borders-Natural_Earth-2affb4)](https://www.naturalearthdata.com/)
 
 **[🌐 Live Preview (GitHub Pages)](https://mocas-12.github.io/The-Global-Pulse/)**
 
 **English** | [简体中文](./README.zh-CN.md) | [日本語](./README.ja-JP.md)
 
-*Open the page → watch the pulse of the Earth rise and fall → click any country for real-time details*
+*Open the page → see the earthquakes, volcanoes and storms happening right now → press the number keys for sensor views*
 
 </div>
 
 ---
 
-> All things pass; all things begin.
+> All things fade; all things begin.
 
 ## 📖 Table of Contents
 
@@ -41,25 +41,18 @@
 
 ## ✨ Features
 
-- 🌍 **Realistic Earth** — NASA Blue Marble 4K day texture + Black Marble night city lights + cloud layer and atmospheric-scattering glow; public-domain imagery localized, no external network dependency
-- ☀️ **Live day/night terminator** — the subsolar point is computed from real UTC time; custom shaders blend day/night per frame with a warm sunset band and ocean sun glint, so you can see at a glance where it is daytime right now
-- 🗺️ **Real borders** — Natural Earth 110m administrative boundaries, 177 countries/regions rendered precisely with log-scaled population tint and hover highlight
-- 📊 **Real data** — World Bank 2024 population / crude birth rate / crude death rate (SP.POP.TOTL / SP.DYN.CBRT.IN / SP.DYN.CDRT.IN), covering 217 economies
-- 💓 **Real-time simulation** — global births / deaths / net growth simulated second by second at each country's real rates; pulses land **inside real national borders** as a flash + expanding shockwave ring, clustering toward densely populated real cities
-- ⏳ **Time-axis replay** — driven by the real UN WPP historical series (1950 → 2024, via Our World in Data): scrub or auto-play and the world population, birth/death rates, pulse cadence and country birth rankings follow real history — watch the baby boom and the light bands migrate
-- 🔗 **Human touches** — the "since you opened this page" net-growth counter is translated into human scale (classroom / school / cruise ship / city); copy a share link for any selected country that flies straight there on open
-- 🛰 **Live layers** — USGS real-time earthquakes, NASA EONET natural disasters (volcanoes / cyclones / wildfires / floods as four colored dots with a legend) and the ISS live orbit (CelesTrak TLE, solved every second), all key-free
-- 🎞 **Sensor styles** — number keys 1-4 switch Standard / NVG night vision / FLIR thermal / Noir monochrome (GLSL post-processing, a nod to OSINT views)
-- 🎐 **The stillness moment** — press space and the world stops: numbers freeze, the heartbeat pauses, and "the world goes on, inside the second you held still" surfaces from the dark; at 1 / 5 / 15 minutes of staying, the screen whispers your real session counts once
-- 🖋 **Turning verse** — the subtitle is no longer one fixed line but rotates through hand-written trilingual aphorisms every 88 seconds; the intro camera flies toward the region matching your language, so the globe recognizes you at first sight
-- 🎬 **Cinematic intro** — orbital boot animation (progress driven by real load stages) → deep-space camera fly-in + title fade + panels easing in; procedural twinkling starfield
-- 🗺️ **Country details** — click any country and the camera flies in; see population, rank, births/deaths today, birth/death rates, and share of the global total (data year noted)
-- 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
-- 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation
-- 🈶 **Trilingual interface** — 中文 / English / 日本語
-- 🎵 **Generative background music** — a cheerful music-box bed (Cmaj9 four-chord pad + pentatonic plucks + light reverb) synthesized in real time with Web Audio, zero audio files; on by default and starts on your first interaction (browser autoplay policy), mute via the top-right corner
-- ⚡ **Fast first paint** — the 3D scene is lazy-loaded (first-paint JS ≈ 78 KB gzip) + all textures converted to WebP + the day texture renders first while night lights and clouds fade in
-- 🛡️ **Quality gates** — CI runs four gates (ESLint → engine & component unit tests → Playwright smoke × built bundle/dev server → build) and only publishes when all pass; the live site is smoke-tested every 6 hours with email notifications on failure; a global ErrorBoundary and `prefers-reduced-motion` support round it out
+- 🌍 **Realistic Earth** — NASA Blue Marble 4K day texture + Black Marble night lights + cloud layer and atmospheric-scattering glow; public-domain imagery localized, no external dependency
+- ☀️ **Live day/night terminator** — the subsolar point is computed from real UTC time; custom shaders blend day/night per frame with an ocean sun glint
+- 🗺️ **Real borders** — Natural Earth 110m administrative boundaries with a neutral graphite tint
+- 🛰️ **Live earthquake layer** — USGS past-24h global earthquakes as amber dots sized by magnitude; fresh M4.5+ events ripple
+- 🌋 **Live natural-disaster layer** — NASA EONET open events: volcanoes (purple), cyclones (cyan), wildfires (yellow), floods (blue), with an at-a-glance legend
+- 🛰️ **ISS live orbit** — CelesTrak TLE solved every second with SGP4; a trailing arc follows the station with real altitude and speed
+- 🎞️ **Sensor styles** — number keys 1-4 switch Standard / NVG night vision / FLIR thermal / Noir monochrome (GLSL post-processing)
+- 🎬 **Boot sequence** — an orbital boot animation driven by real load stages → deep-space camera fly-in toward the region matching your language
+- 🎵 **Generative background music** — a cheerful music-box bed synthesized in real time with Web Audio, zero audio files
+- 🎐 **Turning verse** — hand-written trilingual aphorisms rotating every 88 seconds
+- ⚡ **Fast first paint** — the 3D scene is lazy-loaded (first-paint JS ≈ 67 KB gzip) + WebP textures + the day texture renders first
+- 🛡️ **Quality gates** — CI runs four gates (ESLint → unit tests → Playwright smoke ×2 environments → build); the live site is smoke-tested every 6 hours
 
 ## 🎨 UI Design
 
@@ -67,25 +60,15 @@
 | --- | --- |
 | Theme | Apple glass: pure-black base + frosted-glass panels + hairline strokes, procedural twinkling starfield |
 | Panels | Frosted glass: blur(28px) saturate(1.7) + 22px radii + deep shadows (visionOS feel) |
-| Accent colors | System blue `#0a84ff`; birth green `#30d158` · death red `#ff453a` (iOS semantic colors) |
-| Hero visual | 3D realistic globe: NASA day/night textures + live terminator + atmospheric scattering + clouds; countries as thin strokes with faint tint |
-| Motion | Birth/death flash + shockwave rings; intro camera fly-in and title fade; hand-rolled rAF number tweens; `prefers-reduced-motion` fallback |
-| Layout | Top scrolling ticker + left statistics panel + click-to-open country cards (camera flies in) |
+| Accent colors | iOS system colors: earthquake orange `#ff9f0a` · volcano purple `#bf5af2` · cyclone cyan `#64d2ff` · wildfire yellow `#ffd60a` · flood blue `#0a84ff` |
+| Hero visual | 3D realistic globe: NASA day/night textures + live terminator + atmospheric scattering, covered with live event dots |
 
 ## 🧠 How It Works
 
-```mermaid
-flowchart LR
-    A[📦 Data Pipeline<br/>World Bank · Natural Earth] --> B[⚙️ Simulation Engine<br/>Per-second integration at real rates]
-    B --> C[🌍 3D Globe Rendering<br/>Weighted random landings inside borders]
-    C --> D[📊 Panels & Ticker<br/>Births · Deaths · Causes · Country details]
-```
-
-1. **Data pipeline**: `scripts/fetch_data.py` downloads the latest Natural Earth border GeoJSON and populated places, pulls all World Bank data since 2015 for the three indicators (taking each country's latest value), plus the UN WPP historical series 1950–2023 via Our World in Data
-2. **Real-time simulation**: with World Bank annual crude birth/death rates as the rate, "today / this year" figures are integrated from local midnight / the start of the year; the world population base is the sum of each country's 2024 estimate (about 8.21 billion)
-3. **Landing-point sampling**: pulse lights are weighted by each country's birth/death rate to pick a country, then a city inside it is picked weighted by urban population with a Gaussian spread (shrinking and retrying when a sample falls outside the border), while a fifth of samples stay uniform to represent rural population
-4. **Rendering & interaction**: globe.gl + three.js are lazy-loaded (`src/engine/globeScene.js`, in parallel with the data download); `src/engine/globeFX.js` provides custom shaders — the subsolar point is computed from UTC in real time via a low-precision astronomical algorithm (±0.01°), blending day/night textures, ocean glint and atmospheric scattering every frame; the day texture renders first, then night lights and clouds fade in; clicking a country flies the camera in and opens a details card
-5. **Generative background music**: Web Audio synthesizes a cheerful music-box bed (four-chord pad + pentatonic plucks) in real time — no audio files at all
+1. **Data pipeline**: `scripts/fetch_data.py` downloads the latest Natural Earth border GeoJSON and localizes it
+2. **Live layers**: USGS earthquakes (refreshed every 5 min) and NASA EONET disasters (every 10 min) are key-free public data with silent degradation
+3. **ISS orbit**: CelesTrak TLE + satellite.js, solved every second with SGP4; a trailing arc follows the station
+4. **Rendering**: globe.gl + three.js lazy-loaded; the day texture renders first, then night lights and clouds fade in; number keys 1-4 switch sensor post-processing styles
 
 ## 📁 Project Structure
 
@@ -94,32 +77,23 @@ The-Global-Pulse/
 ├── index.html               # Single-page entry (og/twitter share meta)
 ├── logo.svg                 # Project logo
 ├── scripts/
-│   └── fetch_data.py        # Data pipeline: borders + World Bank indicators
+│   └── fetch_data.py        # Data pipeline: Natural Earth borders
 ├── src/
 │   ├── main.jsx             # Mount entry (StrictMode + ErrorBoundary)
-│   ├── ErrorBoundary.jsx    # Global fallback: shows an error screen instead of a blank page
-│   ├── App.jsx              # Main app (panels / interaction / audio unlock / scene assembly)
-│   ├── engine/worldEngine.js # Data engine: real rates → real-time simulation + random sampling inside borders
-│   ├── engine/globeFX.js    # Visual engine: day/night lighting / atmosphere / clouds / starfield / ripple shaders
-│   ├── engine/globeScene.js # Globe scene: init / intro animation / render loop (lazy-loaded)
-│   ├── audio/audioEngine.js # Web Audio synthesized sound effects
-│   ├── data/worldBankData.json # World Bank 2024 indicators (generated by script)
+│   ├── ErrorBoundary.jsx    # Global fallback: error screen instead of a blank page
+│   ├── App.jsx              # Main app (boot sequence / legend / sensors / audio unlock)
+│   ├── engine/globeScene.js # Globe scene: layers / ISS / sensors / render loop (lazy-loaded)
+│   ├── engine/globeFX.js    # Visual engine: day/night lighting / atmosphere / starfield / sensor shaders
+│   ├── audio/audioEngine.js # Web Audio generative background music
+│   ├── voice.js             # Turning verse (trilingual)
 │   ├── i18n.js              # Trilingual copy
-│   ├── voice.js             # The page's "voice": turning verse / stillness moment / milestone whispers
-│   ├── humanize.js          # Human-scale translation of session net growth
-│   ├── news.js              # Scrolling ticker generation
-│   └── index.css            # Apple glass theme (frosted panels / intro sequence)
-├── e2e/smoke.spec.js        # Playwright smoke tests (mobile viewport / ?pause freeze / StrictMode single instance)
-├── playwright.config.js     # E2E config: built bundle + dev server
-├── playwright.prod.config.js # Live-site monitor config (runs against production)
-├── tests/worldEngine.test.js # Engine unit tests (geometry sampling / time integration / data fallback)
-├── tests/components.test.jsx # Component unit tests (number roll-ups / ticker / panels / error boundary)
+│   └── index.css            # Apple glass theme (frosted panels / boot sequence)
+├── e2e/smoke.spec.js        # Playwright smoke tests
+├── tests/                   # Unit tests (vitest)
 └── public/
     ├── datasets/countries.geojson # Natural Earth borders (generated by script)
-    ├── datasets/populatedPlaces.json # City points for pulse clustering (generated by script)
-    ├── datasets/unSeries.json # UN WPP 1950–2023 historical series (generated by script)
     ├── og-card.png          # Social share card image
-    └── img/                 # NASA globe textures (WebP): 4K day / night lights / water mask / clouds
+    └── img/                 # NASA globe textures (WebP)
 ```
 
 ## 🚀 Quick Start
@@ -138,56 +112,39 @@ npm run dev        # Dev: http://localhost:5173
 | `npm run dev` | Start the dev server |
 | `npm run build` | Build into `dist/` |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run unit tests (engine + components, vitest) |
+| `npm test` | Run unit tests (vitest) |
 | `npm run e2e` | Run Playwright smoke tests (built bundle + dev server) |
-| `npm run preview` | Preview the build locally |
-| `python scripts/fetch_data.py` | Re-fetch borders and World Bank data (requires Python 3) |
+| `python scripts/fetch_data.py` | Re-fetch Natural Earth borders (requires Python 3) |
 
-> After a push to `main`, GitHub Actions runs lint → unit tests → E2E → build and only publishes to GitHub Pages when all pass. A separate workflow smoke-tests the live site every 6 hours (failure notification emails), and another re-runs the data pipeline on the 3rd of every month, opening a PR automatically when the data changes.
+> After a push to `main`, GitHub Actions runs lint → unit tests → E2E → build and only publishes to GitHub Pages when all pass. A separate workflow smoke-tests the live site every 6 hours.
 
 ## 🔢 Data & Methodology
 
-- The "today / this year" figures on the page are **model-simulated values**: integrated from local midnight / the start of the year at World Bank annual rates
-- Time-axis replay (1950 → 2024) uses **real UN WPP historical estimates** (via Our World in Data): while replaying, the world population and birth/death rates are that year's real estimates, and "today" is scaled by that year's rates against the current clock time; the country details card remains World Bank 2024 data
-- The world population base is the sum of each country's 2024 estimate (about 8.21 billion), consistent in magnitude with the UN world population clock
-- Annual baselines for causes of death come from public estimates such as WHO Global Health Estimates, UN IGME, UNAIDS, WHO, and UNODC; the values are approximations used for visualization only
-- All real-time figures are simulations based on authoritative annual statistics, not actual second-by-second counts
+- Earthquake data comes from the USGS past-24h real-time feed; volcanoes / storms / wildfires / floods come from NASA EONET past-30-day open events
+- The ISS position is solved every second from CelesTrak TLE with the SGP4 model; altitude and speed are model-computed values
+- All events land at real coordinates; dot sizes are visual hints only
 
 ## ❓ FAQ
 
 <details>
-<summary><b>Are the numbers on the page real second-by-second counts</b></summary>
+<summary><b>How do I switch sensor views</b></summary>
 
-- No. The figures are simulated by integrating World Bank annual rates from local midnight / the start of the year; the magnitude matches authoritative clocks, but they are not real per-second counts
+- Number keys 1-4: Standard / NVG night vision / FLIR thermal / Noir monochrome; click the badge or press 1 to return to standard
 </details>
 
 <details>
-<summary><b>Why do some countries show no data when clicked</b></summary>
+<summary><b>How do I mute the music</b></summary>
 
-- World Bank indicators cover 217 economies; when a territory has no data, the panel notes the missing data
-</details>
-
-<details>
-<summary><b>How do I update to the latest data</b></summary>
-
-- The repo ships with a workflow that runs `scripts/fetch_data.py` on the 3rd of every month and opens a PR when the data changes — just merge it
-- You can also run `python scripts/fetch_data.py` locally with Python 3 to regenerate both files manually
-</details>
-
-<details>
-<summary><b>How do I mute the sound</b></summary>
-
-- Sound is on by default and unlocks automatically on your first interaction (browser autoplay policy); click the speaker icon in the top-right corner to mute it. The ambient soundscape is synthesized in real time with Web Audio — no discrete note events
+- The background music is on by default and starts on your first interaction (browser autoplay policy); click the speaker icon in the top-right corner to mute
 </details>
 
 ## 📚 Data Sources
 
-- [World Bank Open Data](https://data.worldbank.org/) — population and crude birth/death rates
-- [UN World Population Prospects 2024 (via Our World in Data)](https://ourworldindata.org/population) — 1950–2023 historical population and birth/death rate series
-- [Natural Earth](https://www.naturalearthdata.com/) — administrative boundaries and populated places
-- [NASA Blue Marble Next Generation](https://visibleearth.nasa.gov/collection/1484/blue-marble-next-generation) — day-side surface texture (public domain)
-- [NASA Black Marble — Earth at Night](https://earthobservatory.nasa.gov/features/NightLights) — night-side city lights texture (public domain)
-- [WHO / UN IGME / UNAIDS / UNODC](https://www.who.int/data/global-health-estimates) — cause-of-death estimates
+- [USGS Earthquake Feed](https://earthquake.usgs.gov/earthquakes/feed/) — real-time earthquakes
+- [NASA EONET](https://eonet.gsfc.nasa.gov/) — open natural-event data
+- [CelesTrak](https://celestrak.org/) — ISS orbital elements
+- [Natural Earth](https://www.naturalearthdata.com/) — administrative boundaries
+- [NASA Blue Marble / Black Marble](https://visibleearth.nasa.gov/) — day/night surface textures (public domain)
 
 ## 📄 License
 

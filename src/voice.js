@@ -1,4 +1,4 @@
-// voice.js — 页面的"声音": 轮换的诗 / 静默时刻 / 会话里程碑低语
+// voice.js — 页面的"声音": 轮换的诗(副标题)
 // 原则: 只给真实数据一个被说出来的时刻, 不虚构任何事实。
 
 // 副标题轮换句(第 1 句与开场标题一致, 作为回声)
@@ -34,49 +34,3 @@ export const LINES = {
     'すべての始まりは、すべての別れが残した答え。',
   ],
 }
-
-// 静默时刻(空格): line 为主句, sub 为恢复提示
-export const PAUSE = {
-  zh: {
-    line: '此刻，世界仍在你停下的这一秒里继续。',
-    sub: '再按一次空格，回到流动',
-  },
-  en: {
-    line: 'The world goes on, inside the second you held still.',
-    sub: 'Press space again to rejoin it',
-  },
-  ja: {
-    line: '今、世界はあなたの止めた一秒の中で、続いています。',
-    sub: 'もう一度スペースキーで、流れに戻る',
-  },
-}
-
-// 会话里程碑低语: {b}/{d} 由真实会话计数填充
-export const MILESTONES = [
-  {
-    at: 60,
-    text: {
-      zh: '这一分钟里，世界出生了 {b} 人，也送别了 {d} 人。一切如常，而一切继续。',
-      en: 'In this minute, {b} lives began and {d} ended. All as ever — and all going on.',
-      ja: 'この1分で、世界は{b}人の誕生と{d}人の別れを見送りました。いつも通りに、そして続いていく。',
-    },
-  },
-  {
-    at: 300,
-    text: {
-      zh: '五分钟。你几乎没动，世界却已完成 {b} 次开始与 {d} 次告别。',
-      en: 'Five minutes. You barely moved; the world has already begun {b} lives and parted with {d}.',
-      ja: '5分。あなたはほとんど動いていないのに、世界はもう{b}回の始まりと{d}回の別れを済ませました。',
-    },
-  },
-  {
-    at: 900,
-    text: {
-      zh: '十五分钟。你数得清的是 {b} 与 {d}；世界从不数，它只是继续。',
-      en: 'Fifteen minutes. You could count {b} and {d}. The world never counts — it simply goes on.',
-      ja: '15分。あなたに数えられたのは{b}と{d}。世界は数えない——ただ続いていく。',
-    },
-  },
-]
-
-export const fill = (tpl, b, d) => tpl.replaceAll('{b}', String(b)).replaceAll('{d}', String(d))

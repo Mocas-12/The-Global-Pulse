@@ -7,7 +7,6 @@ import {
   sunLatLon, latLngToVec3, createGlobeMaterial, createAtmosphere,
   createClouds, createStarfield, createRings,
 } from './globeFX'
-import { worldEngine } from './worldEngine'
 
 const BASE = import.meta.env.BASE_URL || '/'
 const TEX = {
@@ -40,7 +39,7 @@ function blackPlaceholder() {
 
 /**
  * 创建地球场景。白天贴图先到先渲染, 夜灯/水膜/云层就绪后渐入。
- * 返回 handle: { dispose, setSelected, setHover, setMobile }
+ * 返回 handle: { dispose, setStyle, setMobile }
  */
 export async function createGlobeScene(container, opts = {}) {
   const {
@@ -48,7 +47,7 @@ export async function createGlobeScene(container, opts = {}) {
     reducedMotion = false,
     home = { lat: 24, lng: 105 },
     isAborted = () => false,
-    onSelect,            // (iso|null) 用户点击国家/地球
+    features = [],       // Natural Earth 国界要素(App 负责加载)
     onDisasters,         // () 自然灾害数据就绪(EONET)
     onIss,               // ({alt, vel}|null) ISS 实时遥测(加载成功后每秒)
     onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
@@ -58,6 +57,7 @@ export async function createGlobeScene(container, opts = {}) {
   } = opts
 
   let dead = false
+  let introDone = false
   const timers = []
   const intervals = []
   const textures = []
@@ -70,7 +70,7 @@ export async function createGlobeScene(container, opts = {}) {
   const world = Globe({ animateIn: false })(container)
     .backgroundColor('rgba(0,0,0,0)')
     .showAtmosphere(false)
-    .polygonsData(worldEngine.features)
+    .polygonsData(features)
     .polygonSideColor(() => 'rgba(160, 175, 210, 0.06)')
     .polygonsTransitionDuration(280)
     .polygonLabel(() => '')
@@ -197,8 +197,6 @@ export async function createGlobeScene(container, opts = {}) {
     arr[i * 3 + 1] = v.y
     arr[i * 3 + 2] = v.z
   }
-  const BIRTH = new THREE.Color(0x30d158)
-  const DEATH = new THREE.Color(0xff453a)
   const QUAKE = new THREE.Color(0xff9f0a)
   const VOLCANO = new THREE.Color(0xbf5af2)
   const STORM = new THREE.Color(0x64d2ff)
@@ -207,7 +205,7 @@ export async function createGlobeScene(container, opts = {}) {
     const i = spawn.head % MAX
     spawn.head += 1
     setPulsePosition(positions, i, lat, lng)
-    const col = ({ birth: BIRTH, death: DEATH, quake: QUAKE, volcano: VOLCANO, storm: STORM })[type] || BIRTH
+    const col = ({ quake: QUAKE, volcano: VOLCANO, storm: STORM })[type] || STORM
     baseColors[i * 3] = col.r
     baseColors[i * 3 + 1] = col.g
     baseColors[i * 3 + 2] = col.b
@@ -229,8 +227,6 @@ export async function createGlobeScene(container, opts = {}) {
   }
   spawn.head = 0
   spawn.ringHead = 0
-
-  const unPulse = worldEngine.onPulse(spawn)
 
   // ——— 实时事件层: USGS 地震 + NASA EONET 自然灾害(均为免密钥) ———
   let quakePts = []
@@ -356,101 +352,17 @@ export async function createGlobeScene(container, opts = {}) {
     } catch { /* TLE 拉取失败静默降级 */ }
   })()
 
-  // ——— 国家多边形着色: 人口对数 -> 淡填充, 让真实地表透出 ———
-  let hoverIso = null
-  let selectedIso = null
-  let introDone = false
-
-  const polygonCapColor = (f) => {
-    const iso = f.__iso3
-    if (iso === hoverIso) return 'rgba(255, 255, 255, 0.30)'
-    if (iso === selectedIso) return 'rgba(255, 255, 255, 0.22)'
-    const c = worldEngine.countries[iso]
-    const pop = c?.population || 0
-    const l = Math.log10(Math.max(pop, 1)) // 0 ~ 9.2
-    const k = Math.min(1, Math.max(0, (l - 4.5) / 4.7))
-    // 中性石墨蓝: 人口对数 -> 淡填充, 让真实地表透出
-    const stops = [
-      [40, 46, 60],
-      [70, 80, 104],
-      [116, 132, 164],
-    ]
-    const seg = k < 0.5 ? 0 : 1
-    const p = k < 0.5 ? k * 2 : (k - 0.5) * 2
-    const a = stops[seg]
-    const b = stops[seg + 1]
-    const r = Math.round(a[0] + (b[0] - a[0]) * p)
-    const g = Math.round(a[1] + (b[1] - a[1]) * p)
-    const bl = Math.round(a[2] + (b[2] - a[2]) * p)
-    const alpha = 0.10 + 0.24 * k
-    return `rgba(${r},${g},${bl},${alpha})`
-  }
-
-  const polygonStrokeColor = (f) => {
-    const iso = f.__iso3
-    if (iso === hoverIso) return 'rgba(255, 255, 255, 0.9)'
-    if (iso === selectedIso) return 'rgba(255, 255, 255, 0.75)'
-    const c = worldEngine.countries[iso]
-    const k = Math.min(1, Math.max(0, (Math.log10(Math.max(c?.population || 0, 1)) - 4.5) / 4.7))
-    return `rgba(170, 190, 220, ${0.18 + 0.25 * k})`
-  }
-
-  const polygonAltitude = (f) => (
-    (f.__iso3 === hoverIso || f.__iso3 === selectedIso) ? 0.035 : 0.01
-  )
-
-  // 强制重估多边形外观(悬停/选中变化时)
-  const refreshPolygons = () => {
-    world.polygonCapColor(polygonCapColor)
-    world.polygonStrokeColor(polygonStrokeColor)
-    world.polygonAltitude(polygonAltitude)
-  }
-  refreshPolygons()
-
-  // ——— 交互 ———
-  world.onPolygonClick((f) => {
-    const iso = f.__iso3
-    setSelected(iso === selectedIso ? null : iso)
-    onSelect?.(selectedIso)
-  })
-  world.onGlobeClick(() => {
-    setSelected(null)
-    onSelect?.(null)
-  })
-  world.onPolygonHover((f) => {
-    const iso = f?.__iso3 ?? null
-    if (iso === hoverIso) return
-    hoverIso = iso
-    refreshPolygons()
-  })
-
-  function setSelected(iso) {
-    if (iso === selectedIso) return
-    selectedIso = iso
-    refreshPolygons()
-    world.controls().autoRotate = introDone && !selectedIso && !reducedMotion
-    if (!iso) return
-    const f = worldEngine.featureByIso.get(iso)
-    if (!f) return
-    const cur = world.pointOfView()
-    world.pointOfView({
-      lat: f.__labelLat,
-      lng: f.__labelLng,
-      altitude: Math.min(cur.altitude || 2.4, 1.75),
-    }, reducedMotion ? 0 : 950)
-  }
-
-  function setHover(iso) {
-    hoverIso = iso || null
-    refreshPolygons()
-  }
+  // ——— 国家多边形: 纯地理参照, 中性石墨蓝淡填充 ———
+  world.polygonCapColor(() => 'rgba(96, 108, 138, 0.16)')
+  world.polygonStrokeColor(() => 'rgba(170, 190, 220, 0.26)')
+  world.polygonAltitude(0.01)
 
   function setStyle(n) {
     globeMat.uniforms.uStyle.value = n
   }
 
   function setMobile(mobile) {
-    if (!introDone || selectedIso || reducedMotion) return
+    if (!introDone || reducedMotion) return
     const pov = world.pointOfView()
     world.pointOfView({ lat: pov.lat, lng: pov.lng, altitude: mobile ? 3.4 : 2.35 }, 900)
   }
@@ -470,7 +382,7 @@ export async function createGlobeScene(container, opts = {}) {
     timers.push(setTimeout(() => onBooted?.(), 1500))
     timers.push(setTimeout(() => {
       introDone = true
-      world.controls().autoRotate = !selectedIso
+      world.controls().autoRotate = true
       onIntroDone?.()
     }, 5000))
   }
@@ -527,8 +439,6 @@ export async function createGlobeScene(container, opts = {}) {
   onReady?.()
 
   return {
-    setSelected,
-    setHover,
     setMobile,
     setStyle,
     dispose() {
@@ -536,7 +446,6 @@ export async function createGlobeScene(container, opts = {}) {
       timers.forEach(clearTimeout)
       intervals.forEach(clearInterval)
       window.removeEventListener('resize', onResize)
-      unPulse()
       cancelAnimationFrame(raf)
       scene.remove(atmo.mesh)
       atmo.mesh.geometry.dispose()
