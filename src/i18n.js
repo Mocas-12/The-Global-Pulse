@@ -4,7 +4,6 @@ export const LANGS = ['zh', 'en', 'ja']
 export const T = {
   zh: {
     title: '全球人口脉搏',
-    subtitle: '万物皆逝，万物皆始。',
     projection: '推演 LIVE',
     worldPop: '世界人口',
     ratePrefix: '每秒',
@@ -74,7 +73,6 @@ export const T = {
   },
   en: {
     title: 'The Global Pulse',
-    subtitle: 'All things fade; all things begin.',
     projection: 'PROJECTED LIVE',
     worldPop: 'World Population',
     ratePrefix: 'Per second',
@@ -144,7 +142,6 @@ export const T = {
   },
   ja: {
     title: 'グローバル・パルス',
-    subtitle: '万物は逝き、万物は始まる。',
     projection: '推計ライブ',
     worldPop: '世界人口',
     ratePrefix: '毎秒',
