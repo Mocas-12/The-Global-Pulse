@@ -32,3 +32,7 @@ pulse-comparison.png
 # 安全扫描钩子状态与 Python 缓存
 .mimosa/
 __pycache__/
+
+# 临时验证脚本
+*.tmp.mjs
+*.tmp.png
