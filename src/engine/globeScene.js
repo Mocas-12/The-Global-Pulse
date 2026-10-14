@@ -20,6 +20,15 @@ const TEX = {
 const GLOBE_R = 100
 const PULSE_R = 101.8 // 高于国家多边形表面(101)与云层(100.6), 避免遮挡
 
+// 实时事件点配色(iOS 系统色): 地震/火山/风暴/野火/洪水
+const EVENT_COLORS = {
+  quake: '#ff9f0a',
+  volcano: '#bf5af2',
+  storm: '#64d2ff',
+  wildfire: '#ffd60a',
+  flood: '#0a84ff',
+}
+
 const loadTex = (url) => new THREE.TextureLoader().loadAsync(url).catch(() => null)
 
 // 1x1 黑色占位: night/water 尚未就绪时给着色器一个安全的采样源
@@ -40,6 +49,7 @@ export async function createGlobeScene(container, opts = {}) {
     home = { lat: 24, lng: 105 },
     isAborted = () => false,
     onSelect,            // (iso|null) 用户点击国家/地球
+    onDisasters,         // () 自然灾害数据就绪(EONET)
     onIss,               // ({alt, vel}|null) ISS 实时遥测(加载成功后每秒)
     onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
     onReady,             // 场景就绪(隐藏 loading)
@@ -64,11 +74,13 @@ export async function createGlobeScene(container, opts = {}) {
     .polygonSideColor(() => 'rgba(160, 175, 210, 0.06)')
     .polygonsTransitionDuration(280)
     .polygonLabel(() => '')
-    // USGS 实时地震(免密钥): 琥珀点, 震级映射大小
+    // 实时事件点(免密钥): 地震(USGS) + 火山/风暴/野火/洪水(NASA EONET)
     .pointsData([])
-    .pointColor(() => '#ff9f0a')
+    .pointColor((d) => EVENT_COLORS[d.kind] || '#ff9f0a')
     .pointAltitude(0.012)
-    .pointRadius((d) => 0.18 + Math.max(0, d.mag - 1) * 0.09)
+    .pointRadius((d) => (d.kind === 'quake'
+      ? 0.18 + Math.max(0, d.mag - 1) * 0.09
+      : d.kind === 'volcano' ? 0.26 : 0.2))
 
   world.controls().enableDamping = true
   world.controls().dampingFactor = 0.08
@@ -188,12 +200,14 @@ export async function createGlobeScene(container, opts = {}) {
   const BIRTH = new THREE.Color(0x30d158)
   const DEATH = new THREE.Color(0xff453a)
   const QUAKE = new THREE.Color(0xff9f0a)
+  const VOLCANO = new THREE.Color(0xbf5af2)
+  const STORM = new THREE.Color(0x64d2ff)
 
   const spawn = ({ type, lat, lng }) => {
     const i = spawn.head % MAX
     spawn.head += 1
     setPulsePosition(positions, i, lat, lng)
-    const col = type === 'quake' ? QUAKE : type === 'death' ? DEATH : BIRTH
+    const col = ({ birth: BIRTH, death: DEATH, quake: QUAKE, volcano: VOLCANO, storm: STORM })[type] || BIRTH
     baseColors[i * 3] = col.r
     baseColors[i * 3 + 1] = col.g
     baseColors[i * 3 + 2] = col.b
@@ -218,8 +232,14 @@ export async function createGlobeScene(container, opts = {}) {
 
   const unPulse = worldEngine.onPulse(spawn)
 
-  // ——— USGS 实时地震层(免密钥): 5 分钟刷新, 新 M4.5+ 事件触发琥珀涟漪 ———
+  // ——— 实时事件层: USGS 地震 + NASA EONET 自然灾害(均为免密钥) ———
+  let quakePts = []
+  let disasterPts = []
   let quakeIds = null
+  let disasterIds = null
+  const renderEvents = () => {
+    if (!dead) world.pointsData([...disasterPts, ...quakePts])
+  }
   const refreshQuakes = async () => {
     try {
       const r = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
@@ -229,6 +249,7 @@ export async function createGlobeScene(container, opts = {}) {
         .filter((f) => f.properties.mag != null && f.geometry?.coordinates)
         .map((f) => ({
           id: f.id,
+          kind: 'quake',
           lat: f.geometry.coordinates[1],
           lng: f.geometry.coordinates[0],
           mag: f.properties.mag,
@@ -239,11 +260,44 @@ export async function createGlobeScene(container, opts = {}) {
         }
       }
       quakeIds = new Set(quakes.map((q) => q.id))
-      if (!dead) world.pointsData(quakes)
+      quakePts = quakes
+      renderEvents()
+    } catch { /* 网络不可用静默降级 */ }
+  }
+  const refreshDisasters = async () => {
+    try {
+      const r = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?days=30&status=open')
+      if (!r.ok) return
+      const data = await r.json()
+      const byKind = { Volcanoes: 'volcano', 'Severe Storms': 'storm', Wildfires: 'wildfire', Floods: 'flood' }
+      const pts = []
+      for (const e of data.events || []) {
+        const kind = byKind[e.categories?.[0]?.title]
+        const g = e.geometry?.[e.geometry.length - 1]
+        if (!kind || !g?.coordinates) continue
+        let lng, lat
+        if (g.type === 'Point') [lng, lat] = g.coordinates
+        else [lng, lat] = g.coordinates[0]?.[0] || []
+        if (typeof lat !== 'number') continue
+        pts.push({ id: e.id, kind, lat, lng, mag: 0 })
+      }
+      if (disasterIds && !dead) {
+        for (const d0 of pts) {
+          if (!disasterIds.has(d0.id) && (d0.kind === 'volcano' || d0.kind === 'storm')) {
+            spawn({ type: d0.kind, lat: d0.lat, lng: d0.lng })
+          }
+        }
+      }
+      disasterIds = new Set(pts.map((d0) => d0.id))
+      disasterPts = pts
+      renderEvents()
+      onDisasters?.()
     } catch { /* 网络不可用静默降级 */ }
   }
   refreshQuakes()
+  refreshDisasters()
   intervals.push(setInterval(refreshQuakes, 5 * 60 * 1000))
+  intervals.push(setInterval(refreshDisasters, 10 * 60 * 1000))
 
   // ——— ISS 实时轨道(CelesTrak TLE + satellite.js, 免密钥): 位置每秒解算 ———
   ;(async () => {

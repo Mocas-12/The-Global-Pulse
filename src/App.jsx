@@ -482,6 +482,8 @@ export default function App() {
   const [geoError, setGeoError] = useState(false)
   const [geoAttempt, setGeoAttempt] = useState(0)
   const [ready, setReady] = useState(false)       // 地球就绪, 开场开始
+  const [bootStage, setBootStage] = useState(0)   // 开机阶段: 0 连接数据源 1 唤醒地球 2 校准晨昏线
+  const [disastersLoaded, setDisastersLoaded] = useState(false)
   const [booted, setBooted] = useState(false)     // 面板入场
   const [introGone, setIntroGone] = useState(false) // 标题谢幕
   const [soundOn, setSoundOn] = useState(true)    // 默认开启(首次手势解锁后真正发声)
@@ -610,6 +612,7 @@ export default function App() {
     const apply = (data) => {
       if (cancelled) return
       worldEngine.setFeatures(data.features || [])
+      setBootStage(1)
       setGeoLoaded(true)
     }
     fetch(`${BASE}datasets/countries.geojson`)
@@ -662,7 +665,11 @@ export default function App() {
         isAborted: () => disposed,
         onSelect: (iso) => setSelectedIso(iso),
         onIss: (info) => setIss(info),
-        onReady: () => setReady(true),
+        onReady: () => {
+          setBootStage(2)
+          setReady(true)
+        },
+        onDisasters: () => setDisastersLoaded(true),
         onBooted: () => setBooted(true),
         onIntroDone: () => setIntroGone(true),
       })
@@ -727,8 +734,21 @@ export default function App() {
     <div className={`app-root ${ready ? 'ready' : ''} ${booted ? 'booted' : ''}`}>
       <div ref={containerRef} className="globe-container" />
 
-      {!ready && !geoError && (
-        <div className="loading-mask"><span className="loading-dot" />{t.loading}</div>
+      {!geoError && (
+        <div className={`loading-mask ${ready ? 'done' : ''}`} aria-hidden="true">
+          <div className="boot-orbit">
+            <span className="ring r1" />
+            <span className="ring r2" />
+            <span className="ring r3" />
+            <span className="core" />
+            <span className="sat s1" />
+            <span className="sat s2" />
+            <span className="sat s3" />
+          </div>
+          <div className="boot-word">THE GLOBAL PULSE</div>
+          <div className="boot-bar"><i style={{ width: `${[26, 68, 100][bootStage]}%` }} /></div>
+          <div className="boot-stage">{[t.boot0, t.boot1, t.boot2][bootStage]}</div>
+        </div>
       )}
       {geoError && (
         <div className="loading-mask error-mask" role="alert">
@@ -763,6 +783,16 @@ export default function App() {
       {iss && (
         <div className="iss-chip" title="ISS · CelesTrak TLE 实时解算">
           <span className="iss-dot" />ISS · {iss.alt} KM · {iss.vel} KM/S
+        </div>
+      )}
+
+      {disastersLoaded && (
+        <div className="disaster-legend" aria-hidden="true">
+          <span><i style={{ background: '#ff9f0a' }} />{t.legendQuake}</span>
+          <span><i style={{ background: '#bf5af2' }} />{t.legendVolcano}</span>
+          <span><i style={{ background: '#64d2ff' }} />{t.legendStorm}</span>
+          <span><i style={{ background: '#ffd60a' }} />{t.legendWildfire}</span>
+          <span><i style={{ background: '#0a84ff' }} />{t.legendFlood}</span>
         </div>
       )}
 

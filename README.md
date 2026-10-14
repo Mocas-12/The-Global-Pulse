@@ -48,11 +48,11 @@
 - 💓 **Real-time simulation** — global births / deaths / net growth simulated second by second at each country's real rates; pulses land **inside real national borders** as a flash + expanding shockwave ring, clustering toward densely populated real cities
 - ⏳ **Time-axis replay** — driven by the real UN WPP historical series (1950 → 2024, via Our World in Data): scrub or auto-play and the world population, birth/death rates, pulse cadence and country birth rankings follow real history — watch the baby boom and the light bands migrate
 - 🔗 **Human touches** — the "since you opened this page" net-growth counter is translated into human scale (classroom / school / cruise ship / city); copy a share link for any selected country that flies straight there on open
-- 🛰 **Live layers** — USGS real-time earthquakes (amber dots + ripple on fresh M4.5+ events) and the ISS live orbit (CelesTrak TLE, solved every second), all key-free
+- 🛰 **Live layers** — USGS real-time earthquakes, NASA EONET natural disasters (volcanoes / cyclones / wildfires / floods as four colored dots with a legend) and the ISS live orbit (CelesTrak TLE, solved every second), all key-free
 - 🎞 **Sensor styles** — number keys 1-4 switch Standard / NVG night vision / FLIR thermal / Noir monochrome (GLSL post-processing, a nod to OSINT views)
 - 🎐 **The stillness moment** — press space and the world stops: numbers freeze, the heartbeat pauses, and "the world goes on, inside the second you held still" surfaces from the dark; at 1 / 5 / 15 minutes of staying, the screen whispers your real session counts once
 - 🖋 **Turning verse** — the subtitle is no longer one fixed line but rotates through hand-written trilingual aphorisms every 88 seconds; the intro camera flies toward the region matching your language, so the globe recognizes you at first sight
-- 🎬 **Cinematic intro** — deep-space camera fly-in + title fade sequence + panels easing in; procedural twinkling starfield
+- 🎬 **Cinematic intro** — orbital boot animation (progress driven by real load stages) → deep-space camera fly-in + title fade + panels easing in; procedural twinkling starfield
 - 🗺️ **Country details** — click any country and the camera flies in; see population, rank, births/deaths today, birth/death rates, and share of the global total (data year noted)
 - 🩺 **Global health panel** — simulated annual death counts across 12 categories such as cardiovascular disease, cancer, tobacco, and under-5 child deaths
 - 📰 **Scrolling ticker** — real-time country-level birth and global cause-of-death bulletins derived from the simulation

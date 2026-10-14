@@ -59,25 +59,110 @@ body {
 
 /* ————————————————— 加载与错误 ————————————————— */
 .loading-mask {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 100;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  color: var(--text-2);
-  font-size: 13px;
-  font-weight: 500;
-  animation: pulse-opacity 1.6s ease-in-out infinite;
+  background: var(--bg);
+  transition: opacity 0.7s ease;
 }
-.loading-dot {
-  width: 6px;
-  height: 6px;
+.app-root.ready .loading-mask {
+  opacity: 0;
+  pointer-events: none;
+}
+/* 开机轨道动画: 三重同心环 + 环绕光点 + 核心 */
+.boot-orbit {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 36px;
+}
+.boot-orbit .ring {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 50%;
-  background: var(--text);
 }
-@keyframes pulse-opacity { 50% { opacity: 0.3; } }
+.boot-orbit .r1 { inset: 0; }
+.boot-orbit .r2 { inset: 24px; }
+.boot-orbit .r3 { inset: 48px; }
+.boot-orbit .core {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 16px rgba(100, 210, 255, 0.9);
+}
+.boot-orbit .sat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 50%;
+}
+.boot-orbit .s1 {
+  background: var(--teal);
+  animation: boot-orbit-1 7s linear infinite;
+}
+.boot-orbit .s2 {
+  background: var(--birth);
+  width: 4px;
+  height: 4px;
+  animation: boot-orbit-2 11s linear infinite;
+}
+.boot-orbit .s3 {
+  background: rgba(255, 255, 255, 0.8);
+  width: 3px;
+  height: 3px;
+  animation: boot-orbit-3 5s linear infinite;
+}
+@keyframes boot-orbit-1 {
+  from { transform: rotate(0turn) translateX(75px) rotate(0turn); }
+  to { transform: rotate(1turn) translateX(75px) rotate(-1turn); }
+}
+@keyframes boot-orbit-2 {
+  from { transform: rotate(0.6turn) translateX(51px) rotate(-0.6turn); }
+  to { transform: rotate(1.6turn) translateX(51px) rotate(-1.6turn); }
+}
+@keyframes boot-orbit-3 {
+  from { transform: rotate(0.2turn) translateX(27px) rotate(-0.2turn); }
+  to { transform: rotate(1.2turn) translateX(27px) rotate(-1.2turn); }
+}
+.boot-word {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  padding-left: 0.32em;
+  color: var(--text);
+  margin-bottom: 22px;
+}
+.boot-bar {
+  width: 190px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.boot-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--text);
+  transition: width 1.2s cubic-bezier(0.25, 1, 0.4, 1);
+}
+.boot-stage {
+  margin-top: 12px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
 
 .error-mask {
   animation: none;
@@ -840,6 +925,38 @@ body {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
+/* ————————————————— 灾害图例 ————————————————— */
+.disaster-legend {
+  position: fixed;
+  left: 16px;
+  bottom: 12px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  font-size: 11px;
+  color: var(--text-2);
+  pointer-events: none;
+}
+.disaster-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.disaster-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
 /* ————————————————— 静默时刻 ————————————————— */
 .still-overlay {
   position: fixed;
@@ -959,6 +1076,7 @@ body {
   .time-axis input[type="range"] { width: auto; flex: 1; min-width: 0; }
   .whisper { bottom: 150px; font-size: 12px; line-height: 1.7; }
   .iss-chip { display: none; }
+  .disaster-legend { display: none; }
 }
 
 /* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */
@@ -967,7 +1085,8 @@ body {
   .live-dot,
   .sound-btn.pending,
   .loading-mask,
-  .country-card {
+  .country-card,
+  .boot-orbit .sat {
     animation: none !important;
   }
   .news-ticker, .slogan, .stats-panel, .top-right, .hint,
