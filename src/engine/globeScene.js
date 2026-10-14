@@ -393,6 +393,7 @@ export async function createGlobeScene(container, opts = {}) {
   if (reducedMotion) {
     world.pointOfView(arrive, 0)
     onBooted?.()
+    refreshLabels()
     onIntroDone?.()
   } else {
     timers.push(setTimeout(() => {
@@ -402,6 +403,7 @@ export async function createGlobeScene(container, opts = {}) {
     timers.push(setTimeout(() => {
       introDone = true
       world.controls().autoRotate = true
+      refreshLabels()
       onIntroDone?.()
     }, 5000))
   }
@@ -472,7 +474,9 @@ export async function createGlobeScene(container, opts = {}) {
   raf = requestAnimationFrame(loop)
 
   // ——— 缩放地名标签: 中距离国名, 近距离城市名 ———
+  // (three-globe 2.45 的 labelsData 文本网格不渲染, 改用 htmlElementsData DOM 标签)
   let labelsTimer = 0
+  let labelsTimer2 = 0
   let cityLabels = []
   fetch(`${BASE}datasets/places.json`)
     .then((r) => (r.ok ? r.json() : []))
@@ -480,40 +484,60 @@ export async function createGlobeScene(container, opts = {}) {
     .catch(() => {})
   const refreshLabels = () => {
     if (dead) return
+    window.__labelRefreshes = (window.__labelRefreshes || 0) + 1
+    window.__cityLabelCount = cityLabels.length
     const alt = world.pointOfView().altitude || 3
-    let items = []
-    if (alt < 1.9) {
+    ;(window.__refreshLog = window.__refreshLog || []).push({ alt: +alt.toFixed(3), items: 0 })
+    const items = []
+    if (alt < 3.2) {
       // 国名: 取要素自带 NAME 与标注点
-      items = features
-        .filter((f) => f.properties?.NAME && f.properties?.LABEL_X != null)
-        .map((f) => ({
-          lat: f.properties.LABEL_Y ?? (f.__bbox ? (f.__bbox[1] + f.__bbox[3]) / 2 : 0),
-          lng: f.properties.LABEL_X,
-          name: f.properties.NAME,
-          size: 0.32,
-        }))
+      for (const f of features) {
+        const p = f.properties || {}
+        if (p.NAME && p.LABEL_X != null && p.LABEL_Y != null) {
+          items.push({ id: `country:${p.NAME}`, kind: 'country', lat: p.LABEL_Y, lng: p.LABEL_X, name: p.NAME })
+        }
+      }
     }
-    if (alt < 0.85 && !dead) {
+    if (alt < 0.85) {
       // 城市名: 人口前 400 城
-      items = items.concat(cityLabels.slice(0, 400).map((c) => ({
-        lat: c.lat, lng: c.lng, name: c.name, size: 0.24,
-      })))
+      for (const c of cityLabels.slice(0, 400)) {
+        items.push({ id: `city:${c.name}`, kind: 'city', lat: c.lat, lng: c.lng, name: c.name })
+      }
     }
-    world.labelsData(items)
+    window.__refreshLog[window.__refreshLog.length - 1].items = items.length
+    world.htmlElementsData(items)
   }
   const queueLabels = () => {
     clearTimeout(labelsTimer)
     labelsTimer = setTimeout(refreshLabels, 250)
+    // 阻尼缩放会在事件结束后继续缓动, 追加一次刷新捕捉落定态
+    clearTimeout(labelsTimer2)
+    labelsTimer2 = setTimeout(refreshLabels, 900)
   }
-  world.labelsData([])
-    .labelText((d) => d.name)
-    .labelLat((d) => d.lat)
-    .labelLng((d) => d.lng)
-    .labelSize((d) => d.size)
-    .labelDotOrientation(() => 'bottom')
-    .labelColor(() => 'rgba(235, 235, 245, 0.55)')
-    .labelResolution(2)
+  world.htmlElementsData([])
+    .htmlLat((d) => d.lat)
+    .htmlLng((d) => d.lng)
+    .htmlAltitude(0.003)
+    .htmlElement((d) => {
+      const el = document.createElement('div')
+      el.className = `map-label ${d.kind}`
+      el.textContent = d.name
+      return el
+    })
   world.onZoom(queueLabels)
+  container.addEventListener('wheel', queueLabels, { passive: true })
+  container.addEventListener('touchmove', queueLabels, { passive: true })
+  // 兜底轮询: 无论缩放由何种机制驱动(滚轮/双指/程序), 高度变化即刷新标签
+  let lastLabelAlt = -1
+  intervals.push(setInterval(() => {
+    if (dead) return
+    const alt = world.pointOfView().altitude || 0
+    if (Math.abs(alt - lastLabelAlt) > 0.06) {
+      lastLabelAlt = alt
+      refreshLabels()
+    }
+  }, 600))
+  refreshLabels()
 
   // ——— 航线(OpenSky 快照 + 航位推算)与网络威胁(FeodoTracker/OpenPhish) ———
   // 均默认关闭, 由 handle.toggleFlights/toggleThreats 开启
@@ -596,7 +620,7 @@ export async function createGlobeScene(container, opts = {}) {
 
   // 测试钩子: ?debug 暴露只读状态(E2E 断言自转语义)
   if (debug) {
-    window.__globeDebug = () => ({ autoRotate: world.controls().autoRotate, introDone })
+    window.__globeDebug = () => ({ autoRotate: world.controls().autoRotate, introDone, alt: world.pointOfView().altitude, html: world.htmlElementsData().length, cityLabels: cityLabels.length })
   }
 
   return {
@@ -628,6 +652,7 @@ export async function createGlobeScene(container, opts = {}) {
       rings.geom.dispose()
       rings.mat.dispose()
       clearTimeout(labelsTimer)
+      clearTimeout(labelsTimer2)
       container.removeEventListener('pointerdown', onDown)
       container.removeEventListener('click', onClick)
       if (flightDots.points) scene.remove(flightDots.points)
