@@ -258,7 +258,7 @@ export default function App() {
 
       {disastersLoaded && (
         <div className="disaster-legend" aria-hidden="true">
-          <span><i style={{ background: '#ff9f0a' }} />{t.legendQuake}</span>
+          <span><i style={{ background: '#ff453a' }} />{t.legendQuake}</span>
           <span><i style={{ background: '#bf5af2' }} />{t.legendVolcano}</span>
           <span><i style={{ background: '#64d2ff' }} />{t.legendStorm}</span>
           <span><i style={{ background: '#ffd60a' }} />{t.legendWildfire}</span>

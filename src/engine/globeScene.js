@@ -21,10 +21,10 @@ const PULSE_R = 101.8 // 高于国家多边形表面(101)与云层(100.6), 避�
 
 // 实时事件点配色(iOS 系统色): 地震/火山/风暴/野火/洪水
 const EVENT_COLORS = {
-  quake: '#ff9f0a',
+  quake: '#ff453a',
   volcano: '#bf5af2',
   storm: '#64d2ff',
-  wildfire: '#ffd60a',
+  wildfire: '#ff9f0a',
   flood: '#0a84ff',
 }
 
@@ -79,8 +79,8 @@ export async function createGlobeScene(container, opts = {}) {
     .pointColor((d) => EVENT_COLORS[d.kind] || '#ff9f0a')
     .pointAltitude(0.012)
     .pointRadius((d) => (d.kind === 'quake'
-      ? 0.18 + Math.max(0, d.mag - 1) * 0.09
-      : d.kind === 'volcano' ? 0.26 : 0.2))
+      ? 0.22 + Math.max(0, d.mag - 2.5) * 0.08
+      : d.kind === 'volcano' ? 0.26 : d.kind === 'wildfire' ? 0.12 : 0.2))
 
   world.controls().enableDamping = true
   world.controls().dampingFactor = 0.08
@@ -197,7 +197,7 @@ export async function createGlobeScene(container, opts = {}) {
     arr[i * 3 + 1] = v.y
     arr[i * 3 + 2] = v.z
   }
-  const QUAKE = new THREE.Color(0xff9f0a)
+  const QUAKE = new THREE.Color(0xff453a)
   const VOLCANO = new THREE.Color(0xbf5af2)
   const STORM = new THREE.Color(0x64d2ff)
 
@@ -238,7 +238,7 @@ export async function createGlobeScene(container, opts = {}) {
   }
   const refreshQuakes = async () => {
     try {
-      const r = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
+      const r = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
       if (!r.ok) return
       const data = await r.json()
       const quakes = (data.features || [])
@@ -284,15 +284,17 @@ export async function createGlobeScene(container, opts = {}) {
           }
         }
       }
+      // 野火在 EONET 中占绝对多数, 限流最近 12 处避免淹没其他灾害
+      const wildfires = pts.filter((d0) => d0.kind === 'wildfire').slice(0, 12)
       disasterIds = new Set(pts.map((d0) => d0.id))
-      disasterPts = pts
+      disasterPts = [...pts.filter((d0) => d0.kind !== 'wildfire'), ...wildfires]
       renderEvents()
       onDisasters?.()
     } catch { /* 网络不可用静默降级 */ }
   }
   refreshQuakes()
   refreshDisasters()
-  intervals.push(setInterval(refreshQuakes, 5 * 60 * 1000))
+  intervals.push(setInterval(refreshQuakes, 2 * 60 * 1000))
   intervals.push(setInterval(refreshDisasters, 10 * 60 * 1000))
 
   // ——— ISS 实时轨道(CelesTrak TLE + satellite.js, 免密钥): 位置每秒解算 ———

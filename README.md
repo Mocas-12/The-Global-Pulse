@@ -44,7 +44,7 @@
 - 🌍 **Realistic Earth** — NASA Blue Marble 4K day texture + Black Marble night lights + cloud layer and atmospheric-scattering glow; public-domain imagery localized, no external dependency
 - ☀️ **Live day/night terminator** — the subsolar point is computed from real UTC time; custom shaders blend day/night per frame with an ocean sun glint
 - 🗺️ **Real borders** — Natural Earth 110m administrative boundaries with a neutral graphite tint
-- 🛰️ **Live earthquake layer** — USGS past-24h global earthquakes as amber dots sized by magnitude; fresh M4.5+ events ripple
+- 🛰️ **Live earthquake layer** — USGS M2.5+ real-time summary (refreshed every 2 min) as red dots sized by magnitude; fresh M4.5+ events ripple
 - 🌋 **Live natural-disaster layer** — NASA EONET open events: volcanoes (purple), cyclones (cyan), wildfires (yellow), floods (blue), with an at-a-glance legend
 - 🛰️ **ISS live orbit** — CelesTrak TLE solved every second with SGP4; a trailing arc follows the station with real altitude and speed
 - 🎞️ **Sensor styles** — number keys 1-4 switch Standard / NVG night vision / FLIR thermal / Noir monochrome (GLSL post-processing)
@@ -60,7 +60,7 @@
 | --- | --- |
 | Theme | Apple glass: pure-black base + frosted-glass panels + hairline strokes, procedural twinkling starfield |
 | Panels | Frosted glass: blur(28px) saturate(1.7) + 22px radii + deep shadows (visionOS feel) |
-| Accent colors | iOS system colors: earthquake orange `#ff9f0a` · volcano purple `#bf5af2` · cyclone cyan `#64d2ff` · wildfire yellow `#ffd60a` · flood blue `#0a84ff` |
+| Accent colors | iOS system colors: earthquake red `#ff453a` · volcano purple `#bf5af2` · cyclone cyan `#64d2ff` · wildfire orange `#ff9f0a` · flood blue `#0a84ff` |
 | Hero visual | 3D realistic globe: NASA day/night textures + live terminator + atmospheric scattering, covered with live event dots |
 
 ## 🧠 How It Works
@@ -120,7 +120,7 @@ npm run dev        # Dev: http://localhost:5173
 
 ## 🔢 Data & Methodology
 
-- Earthquake data comes from the USGS past-24h real-time feed; volcanoes / storms / wildfires / floods come from NASA EONET past-30-day open events
+- Earthquake data comes from the USGS M2.5+ real-time summary (refreshed every 2 min); volcanoes / storms / wildfires / floods come from NASA EONET near-real-time open events (wildfires capped at the latest 12)
 - The ISS position is solved every second from CelesTrak TLE with the SGP4 model; altitude and speed are model-computed values
 - All events land at real coordinates; dot sizes are visual hints only
 
