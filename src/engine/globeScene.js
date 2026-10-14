@@ -545,10 +545,27 @@ export async function createGlobeScene(container, opts = {}) {
   const flightDots = { points: null, geo: null, items: [], fetchedAt: 0, on: false }
   const threatDots = { points: null, geo: null, on: false }
 
+  const dotTexture = (() => {
+    const cv = document.createElement('canvas')
+    cv.width = cv.height = 64
+    const g = cv.getContext('2d')
+    const grad = g.createRadialGradient(32, 32, 4, 32, 32, 30)
+    grad.addColorStop(0, 'rgba(255,255,255,1)')
+    grad.addColorStop(0.55, 'rgba(255,255,255,0.95)')
+    grad.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = grad
+    g.fillRect(0, 0, 64, 64)
+    const tex = new THREE.CanvasTexture(cv)
+    return tex
+  })()
+
   const buildPoints = (color, size) => {
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3))
-    const mat = new THREE.PointsMaterial({ color, size: size * PR, sizeAttenuation: true, transparent: true, opacity: 0.9, depthWrite: false })
+    const mat = new THREE.PointsMaterial({
+      color, size: size * PR, sizeAttenuation: true, transparent: true,
+      opacity: 0.9, depthWrite: false, map: dotTexture, alphaTest: 0.15,
+    })
     const points = new THREE.Points(geo, mat)
     points.visible = false
     points.frustumCulled = false
