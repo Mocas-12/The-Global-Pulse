@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/fetch_data.py
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         with:
           commit-message: 'data: 刷新世界银行人口/出生/死亡数据'
           title: 'data: monthly World Bank data refresh'
