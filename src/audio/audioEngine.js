@@ -30,10 +30,6 @@ export function setMuted(m) {
 
 export function isMuted() { return muted }
 
-export function audioDebug() {
-  return { hasCtx: !!ctx, state: ctx?.state ?? null, ambient: ambientRunning, muted }
-}
-
 // ——— 音乐素材: Cmaj9 -> Am7 -> Fmaj7 -> G6 温暖循环 + C 大调五声音阶 ———
 const CHORDS = [
   [130.81, 164.81, 196.0, 246.94, 293.66], // Cmaj9

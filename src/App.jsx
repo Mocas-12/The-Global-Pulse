@@ -536,10 +536,11 @@ export default function App() {
       for (const m of MILESTONES) {
         if (sec >= m.at && !shownMilestonesRef.current.has(m.at)) {
           shownMilestonesRef.current.add(m.at)
-          const loc = lang === 'zh' ? 'zh-CN' : lang === 'ja' ? 'ja-JP' : 'en-US'
+          const l = langRef.current
+          const loc = l === 'zh' ? 'zh-CN' : l === 'ja' ? 'ja-JP' : 'en-US'
           const b = Math.floor(sec * s.liveBirthsPerSec).toLocaleString(loc)
           const d = Math.floor(sec * s.liveDeathsPerSec).toLocaleString(loc)
-          setWhisperText(fill(m.text[lang], b, d))
+          setWhisperText(fill(m.text[l], b, d))
           setWhisperShow(true)
           clearTimeout(whisperT1.current)
           clearTimeout(whisperT2.current)
@@ -556,7 +557,7 @@ export default function App() {
       clearTimeout(whisperT1.current)
       clearTimeout(whisperT2.current)
     }
-  }, [frozen, lang])
+  }, [frozen])
 
   // 空格触发静默时刻, 数字键 1-4 切换传感器风格; 焦点在控件上时不劫持
   useEffect(() => {

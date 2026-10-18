@@ -42,7 +42,6 @@ export async function createGlobeScene(container, opts = {}) {
     isAborted = () => false,
     onSelect,            // (iso|null) 用户点击国家/地球
     onIss,               // ({alt, vel}|null) ISS 实时遥测(加载成功后每秒)
-    onIntroStart,        // 开场飞入开始(用于音频"接近音"时间窗)
     onReady,             // 场景就绪(隐藏 loading)
     onBooted,            // 面板入场
     onIntroDone,         // 开场结束(标题谢幕)
@@ -370,7 +369,6 @@ export async function createGlobeScene(container, opts = {}) {
 
   // ——— 开场: 相机从深空飞入, 标题渐显 ———
   world.pointOfView({ lat: 8, lng: 40, altitude: 5.9 }, 0)
-  onIntroStart?.()
   const arrive = { lat: home.lat, lng: home.lng, altitude: isMobile ? 3.4 : 2.35 }
   if (reducedMotion) {
     world.pointOfView(arrive, 0)
