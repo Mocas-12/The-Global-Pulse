@@ -258,9 +258,9 @@ body {
   background: var(--glass);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(28px) saturate(1.7);
-  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* 入场: 轻微上移 + 淡入 */
@@ -299,8 +299,8 @@ body {
   border: 1px solid var(--hairline);
   border-radius: 999px;
   box-shadow: 0 10px 36px var(--obs-tone-5), inset 0 1px 0 var(--obs-tone-6);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
 }
@@ -319,7 +319,7 @@ body {
   padding: 0 18px;
   border-left: 1px solid var(--hairline);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-2);
 }
 .ticker-item:first-child { border-left: none; }
@@ -412,7 +412,7 @@ body {
 .clock {
   margin-left: auto;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -422,7 +422,7 @@ body {
 .big-stat { margin-bottom: 14px; }
 .big-label {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-2);
   margin-bottom: 3px;
 }
@@ -439,7 +439,7 @@ body {
 .rate-line {
   margin-top: 5px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
@@ -571,7 +571,7 @@ body {
   color: var(--text-3);
   font-family: var(--font);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
   padding: 8px 0 0;
   transition: color 0.15s;
@@ -600,7 +600,7 @@ body {
 }
 .top-name {
   color: var(--text);
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -633,7 +633,7 @@ body {
   color: var(--text-3);
   font-family: var(--font);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   cursor: pointer;
   padding: 10px 0 0;
   text-align: left;
@@ -765,8 +765,8 @@ body {
   border: 1px solid var(--hairline);
   border-radius: 999px;
   padding: 3px;
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .lang-switch button {
   background: none;
@@ -798,8 +798,8 @@ body {
   display: grid;
   place-items: center;
   cursor: pointer;
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: background 0.15s, color 0.15s;
 }
 .sound-btn.on {
@@ -844,8 +844,8 @@ body {
   background: var(--glass);
   border: 1px solid var(--hairline);
   box-shadow: 0 10px 36px var(--obs-tone-5), inset 0 1px 0 var(--obs-tone-6);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .time-axis input[type="range"] {
   -webkit-appearance: none;
@@ -900,7 +900,7 @@ body {
   color: var(--text-2);
   font-family: var(--font);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   padding: 2px 0;
   cursor: pointer;
   transition: color 0.15s;
@@ -935,8 +935,8 @@ body {
   background: var(--glass);
   border: 1px solid var(--hairline);
   box-shadow: 0 8px 26px var(--obs-tone-5);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0;
@@ -963,8 +963,8 @@ body {
   justify-content: center;
   gap: 16px;
   background: var(--obs-tone-19);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   opacity: 0;
   pointer-events: none;
   transition: opacity 1s ease;
@@ -976,7 +976,7 @@ body {
 }
 .still-line {
   font-size: clamp(16px, 2vw, 21px);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
   color: var(--text);
   text-align: center;
@@ -1098,7 +1098,7 @@ html, body { overflow-x: clip; }
 .stats-panel { top: 80px; left: 24px; width: 316px; padding: 22px; max-height: calc(100% - 128px); }
 .panel-head { padding-bottom: 14px; border-bottom: 1px solid var(--hairline-hi); margin-bottom: 18px; }
 .live-dot { display: none; }
-.live-label { color: var(--teal); font-weight: 500; font-size: 12px; }
+.live-label { color: var(--teal); font-weight: 400; font-size: 12px; }
 .clock { color: var(--text-2); font-size: 12px; }
 .big-label { font-size: 14px; color: var(--text-2); }
 .big-value { font-size: 34px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
