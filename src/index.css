@@ -1142,3 +1142,9 @@ h1, h2 { text-wrap: balance; }
 @media(max-width:768px) { .news-ticker { right:188px; } .time-axis { bottom:calc(168px + env(safe-area-inset-bottom)); } .app-root:has(.stats-panel.expanded) .time-axis { bottom:calc(52% + 28px); } }
 
 :focus-visible { outline:2px solid var(--teal); outline-offset:4px; transition:none; }
+
+.time-axis input[type=range] { height:28px; background:transparent; }
+.time-axis input[type=range]::-webkit-slider-runnable-track { height:3px; background:var(--hairline-hi); }
+.time-axis input[type=range]::-webkit-slider-thumb { margin-top:-6px; }
+.time-axis input[type=range]::-moz-range-track { height:3px; background:var(--hairline-hi); }
+.time-axis:focus-within { outline:2px solid var(--teal); outline-offset:4px; }
