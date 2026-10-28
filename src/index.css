@@ -1,4 +1,9 @@
+/* Hallmark · v2.0.0 · scope: app · shape: app screen · theme: brand · redesign: full
+   signature: real Earth with an aligned population observation ledger · material: existing live product data · copy: preserved
+   keeps: every route, input, handler and data source · surface: tinted · built: the project */
+/* Hallmark · critique: hierarchy leads with the task; decoration yields to data. */
 @tailwind base;
+/* Hallmark · waive 24b · retained dense app geometry · compact spacing preserves existing row density, optical alignment and scene HUD positions; touch targets are enlarged independently. */
 @tailwind components;
 @tailwind utilities;
 
@@ -6,25 +11,47 @@
    设计令牌: 纯黑基底 + visionOS 磨砂玻璃 + 系统语义色 + SF 系字体栈。
    不用渐变文字、噪点纹理、霓虹辉光; 层次全部交给玻璃、发丝线与阴影。 */
 :root {
-  --bg: #000000;
+  --bg: #080c12;
   --hairline: rgba(255, 255, 255, 0.08);
   --hairline-hi: rgba(255, 255, 255, 0.14);
-  --glass: rgba(22, 22, 26, 0.55);
-  --glass-strong: rgba(28, 28, 32, 0.68);
+  --glass: rgba(15, 22, 30, 0.94);
+  --glass-strong: #18222d;
   --fill: rgba(255, 255, 255, 0.05);
   --fill-hover: rgba(255, 255, 255, 0.09);
   --text: #f5f5f7;
-  --text-2: rgba(235, 235, 245, 0.62);
-  --text-3: rgba(235, 235, 245, 0.34);
+  --text-2: #b9c4cf;
+  --text-3: #8e9dab;
   --blue: #0a84ff;
   --birth: #30d158;
   --death: #ff453a;
   --teal: #64d2ff;
   --amber: #ff9f0a;
-  --radius-panel: 22px;
+  --radius-panel: 12px;
   --shadow-panel: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI',
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Helvetica Neue', sans-serif;
+
+  --obs-tone-1: #e8edf2;
+  --obs-tone-2: rgba(100, 210, 255, 0.9);
+  --obs-tone-3: rgba(255, 255, 255, 0.8);
+  --obs-tone-4: rgba(255, 255, 255, 0.1);
+  --obs-tone-5: rgba(0, 0, 0, 0.4);
+  --obs-tone-6: rgba(255, 255, 255, 0.06);
+  --obs-tone-7: rgba(255, 69, 58, 0.7);
+  --obs-tone-8: rgba(255, 69, 58, 0.12);
+  --obs-tone-9: rgba(255, 69, 58, 0.75);
+  --obs-tone-10: rgba(255, 69, 58, 0.2);
+  --obs-tone-11: rgba(255, 255, 255, 0.07);
+  --obs-tone-12: rgba(255, 255, 255, 0.16);
+  --obs-tone-13: rgba(0, 0, 0, 0.35);
+  --obs-tone-14: rgba(255, 255, 255, 0.12);
+  --obs-tone-15: rgba(0, 0, 0, 0.5);
+  --obs-tone-16: rgba(48, 209, 88, 0.14);
+  --obs-tone-17: rgba(48, 209, 88, 0.35);
+  --obs-tone-18: rgba(48, 209, 88, 0.24);
+  --obs-tone-19: rgba(0, 0, 0, 0.78);
+  --obs-tone-20: rgba(235, 235, 245, 0);
+  --obs-tone-21: rgba(235, 235, 245, 0.72);
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +59,7 @@
 html, body, #root {
   height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -82,7 +109,7 @@ body {
 }
 .boot-orbit .ring {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--fill-hover);
   border-radius: 50%;
 }
 .boot-orbit .r1 { inset: 0; }
@@ -95,8 +122,8 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 16px rgba(100, 210, 255, 0.9);
+  background: var(--obs-tone-1);
+  box-shadow: 0 0 16px var(--obs-tone-2);
 }
 .boot-orbit .sat {
   position: absolute;
@@ -118,7 +145,7 @@ body {
   animation: boot-orbit-2 11s linear infinite;
 }
 .boot-orbit .s3 {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--obs-tone-3);
   width: 3px;
   height: 3px;
   animation: boot-orbit-3 5s linear infinite;
@@ -138,7 +165,7 @@ body {
 .boot-word {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.32em;
+  letter-spacing: 0;
   padding-left: 0.32em;
   color: var(--text);
   margin-bottom: 22px;
@@ -147,7 +174,7 @@ body {
   width: 190px;
   height: 2px;
   border-radius: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--obs-tone-4);
   overflow: hidden;
 }
 .boot-bar i {
@@ -155,13 +182,13 @@ body {
   height: 100%;
   border-radius: 1px;
   background: var(--text);
-  transition: width 1.2s cubic-bezier(0.25, 1, 0.4, 1);
+  transition: none;
 }
 .boot-stage {
   margin-top: 12px;
   font-size: 11.5px;
   color: var(--text-3);
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .error-mask {
@@ -214,7 +241,7 @@ body {
   margin: 0;
   font-size: clamp(32px, 5.6vw, 60px);
   font-weight: 650;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
   line-height: 1.1;
   color: var(--text);
 }
@@ -222,7 +249,7 @@ body {
   margin: 14px 0 0;
   font-size: clamp(13px, 1.4vw, 16px);
   font-weight: 400;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: var(--text-2);
 }
 
@@ -262,7 +289,7 @@ body {
   top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(760px, calc(100vw - 32px));
+  width: min(760px, calc(100% - 32px));
   height: 38px;
   overflow: hidden;
   z-index: 40;
@@ -271,7 +298,7 @@ body {
   background: var(--glass);
   border: 1px solid var(--hairline);
   border-radius: 999px;
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 36px var(--obs-tone-5), inset 0 1px 0 var(--obs-tone-6);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   mask-image: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
@@ -321,7 +348,7 @@ body {
   display: inline-block;
   transition: opacity 1.7s ease;
 }
-.slogan-text.faded { opacity: 0; }
+.slogan-text.faded { opacity: .15; }
 
 /* ————————————————— 左侧统计面板 ————————————————— */
 .stats-panel {
@@ -334,10 +361,10 @@ body {
   padding: 18px 20px 16px;
   z-index: 50;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  scrollbar-color: var(--hairline-hi) transparent;
 }
 .stats-panel::-webkit-scrollbar { width: 4px; }
-.stats-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 2px; }
+.stats-panel::-webkit-scrollbar-thumb { background: var(--hairline-hi); border-radius: 2px; }
 
 .panel-head {
   display: flex;
@@ -367,7 +394,7 @@ body {
   border-radius: 50%;
   flex: none;
   background: var(--death);
-  box-shadow: 0 0 8px rgba(255, 69, 58, 0.7);
+  box-shadow: 0 0 8px var(--obs-tone-7);
   animation: live-blink 1.8s ease-in-out infinite;
 }
 @keyframes live-blink { 50% { opacity: 0.3; } }
@@ -375,7 +402,7 @@ body {
   color: var(--death);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -402,7 +429,7 @@ body {
 .big-value {
   font-size: 32px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--text);
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
@@ -445,7 +472,7 @@ body {
   font-size: 17px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--text);
 }
 .session-num.birth { color: var(--birth); }
@@ -475,7 +502,7 @@ body {
   font-size: 15px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 .stat.birth .stat-value { color: var(--birth); }
 .stat.death .stat-value { color: var(--death); }
@@ -523,7 +550,7 @@ body {
   display: block;
   width: 100%;
   height: 2px;
-  background: rgba(255, 69, 58, 0.12);
+  background: var(--obs-tone-8);
   border-radius: 1px;
   overflow: hidden;
 }
@@ -533,9 +560,9 @@ body {
   bottom: 0;
   left: 0;
   display: block;
-  background: linear-gradient(90deg, rgba(255, 69, 58, 0.75), rgba(255, 69, 58, 0.2));
+  background: linear-gradient(90deg, var(--obs-tone-9), var(--obs-tone-10));
   border-radius: 1px;
-  transition: width 0.4s ease;
+  transition: none;
 }
 
 .expand-toggle {
@@ -659,7 +686,7 @@ body {
 .card-name {
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--text);
 }
 .card-close {
@@ -677,7 +704,7 @@ body {
   line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
-.card-close:hover { background: var(--fill-hover); color: #fff; }
+.card-close:hover { background: var(--fill-hover); color: var(--obs-tone-1); }
 .card-share {
   margin-left: auto;
   background: var(--fill);
@@ -693,7 +720,7 @@ body {
   line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
-.card-share:hover { background: var(--fill-hover); color: #fff; }
+.card-share:hover { background: var(--fill-hover); color: var(--obs-tone-1); }
 .card-share.copied { color: var(--birth); }
 .card-share + .card-close { margin-left: 0; }
 
@@ -711,7 +738,7 @@ body {
   font-size: 14.5px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 .card-item.birth .card-value { color: var(--birth); }
 .card-item.death .card-value { color: var(--death); }
@@ -734,7 +761,7 @@ body {
 /* iOS 分段控件 */
 .lang-switch {
   display: flex;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--obs-tone-11);
   border: 1px solid var(--hairline);
   border-radius: 999px;
   padding: 3px;
@@ -754,12 +781,12 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .lang-switch button.on {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  color: var(--obs-tone-1);
+  background: var(--obs-tone-12);
+  box-shadow: 0 1px 4px var(--obs-tone-13);
 }
 .sound-btn {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--obs-tone-11);
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--text-2);
@@ -777,7 +804,7 @@ body {
 }
 .sound-btn.on {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--obs-tone-14);
 }
 /* 默认开启但尚未解锁(等待首次手势): 呼吸提示 */
 .sound-btn.pending {
@@ -816,7 +843,7 @@ body {
   border-radius: 999px;
   background: var(--glass);
   border: 1px solid var(--hairline);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 36px var(--obs-tone-5), inset 0 1px 0 var(--obs-tone-6);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
 }
@@ -826,7 +853,7 @@ body {
   width: min(260px, 32vw);
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--obs-tone-12);
   outline: none;
   cursor: pointer;
   margin: 0;
@@ -836,8 +863,8 @@ body {
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  background: var(--obs-tone-1);
+  box-shadow: 0 1px 6px var(--obs-tone-15);
   cursor: pointer;
 }
 .time-axis input[type="range"]::-moz-range-thumb {
@@ -845,8 +872,8 @@ body {
   height: 15px;
   border: none;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  background: var(--obs-tone-1);
+  box-shadow: 0 1px 6px var(--obs-tone-15);
   cursor: pointer;
 }
 .ta-play {
@@ -882,19 +909,19 @@ body {
 
 /* ————————————————— 传感器徽章 + ISS 遥测芯片 ————————————————— */
 .sensor-badge {
-  background: rgba(48, 209, 88, 0.14);
-  border: 1px solid rgba(48, 209, 88, 0.35);
+  background: var(--obs-tone-16);
+  border: 1px solid var(--obs-tone-17);
   border-radius: 999px;
   color: var(--birth);
   font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   padding: 8px 13px;
   cursor: pointer;
   transition: background 0.15s;
 }
-.sensor-badge:hover { background: rgba(48, 209, 88, 0.24); }
+.sensor-badge:hover { background: var(--obs-tone-18); }
 .iss-chip {
   position: fixed;
   right: 16px;
@@ -907,12 +934,12 @@ body {
   border-radius: 999px;
   background: var(--glass);
   border: 1px solid var(--hairline);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 26px var(--obs-tone-5);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
@@ -921,8 +948,8 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  background: var(--obs-tone-1);
+  box-shadow: 0 0 8px var(--obs-tone-3);
 }
 
 /* ————————————————— 静默时刻 ————————————————— */
@@ -935,7 +962,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  background: rgba(0, 0, 0, 0.78);
+  background: var(--obs-tone-19);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   opacity: 0;
@@ -950,7 +977,7 @@ body {
 .still-line {
   font-size: clamp(16px, 2vw, 21px);
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   color: var(--text);
   text-align: center;
   max-width: 88vw;
@@ -972,12 +999,12 @@ body {
   text-align: center;
   font-size: 13px;
   line-height: 1.8;
-  color: rgba(235, 235, 245, 0);
+  color: var(--obs-tone-20);
   transition: color 2.4s ease;
   pointer-events: none;
 }
 .whisper.show {
-  color: rgba(235, 235, 245, 0.72);
+  color: var(--obs-tone-21);
 }
 
 /* ————————————————— 移动端 ————————————————— */
@@ -1011,7 +1038,7 @@ body {
     max-height: 56vh;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    scrollbar-color: var(--hairline-hi) transparent;
   }
   .country-card {
     right: 10px;
@@ -1037,7 +1064,7 @@ body {
   .cause-list { gap: 5px; }
   .time-axis {
     bottom: 84px;
-    width: min(560px, calc(100vw - 20px));
+    width: min(560px, calc(100% - 20px));
     gap: 10px;
     padding: 9px 14px;
   }
@@ -1064,3 +1091,54 @@ body {
     transition: none !important;
   }
 }
+
+/* Observation controls stay quiet around the real globe. */
+html, body { overflow-x: clip; }
+.panel { box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.stats-panel { top: 80px; left: 24px; width: 316px; padding: 22px; max-height: calc(100% - 128px); }
+.panel-head { padding-bottom: 14px; border-bottom: 1px solid var(--hairline-hi); margin-bottom: 18px; }
+.live-dot { display: none; }
+.live-label { color: var(--teal); font-weight: 500; font-size: 12px; }
+.clock { color: var(--text-2); font-size: 12px; }
+.big-label { font-size: 14px; color: var(--text-2); }
+.big-value { font-size: 34px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.rate-line { line-height: 1.8; font-size: 12px; }
+.session-box { border: 0; border-radius: 0; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 14px 0; background: none; }
+.session-label, .session-cap, .cause-label { font-size: 12px; color: var(--text-2); }
+.cause-list { gap: 10px; }
+.cause-bar { height: 3px; }
+.cause-bar i { background: var(--death); }
+.top-row { min-height: 34px; border-radius: 4px; }
+.top-right { top: 18px; right: 24px; }
+.lang-switch, .sound-btn, .time-axis { background: var(--glass); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 8px; }
+.lang-switch button, .sound-btn, .panel-toggle { min-width: 36px; min-height: 36px; }
+.lang-switch button { border-radius: 5px; }
+.news-ticker { top: 18px; width: min(680px, calc(100% - 360px)); height: 36px; border-radius: 6px; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.slogan { top: 66px; color: var(--text-2); }
+.time-axis { bottom: 26px; padding: 12px 18px; }
+.country-card { width: 340px; padding: 24px; max-height: calc(100% - 180px); overflow-y: auto; }
+.country-card h2 { font-size: 24px; min-width: 0; overflow-wrap: break-word; }
+.method-note, .method-body { line-height: 1.7; }
+button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; transition: none; }
+.ticker-track { animation-duration: 70s; }
+.boot-word { text-transform: none; letter-spacing: 0; }
+@media (max-width: 768px) {
+ .top-right { right: 14px; top: 14px; }
+ .news-ticker { top: 14px; left: 14px; right: 154px; width: auto; border-radius: 6px; }
+ .slogan { top: 64px; font-size: 12px; }
+ .stats-panel { top: auto; left: 14px; right: 14px; width: auto; bottom: max(14px, env(safe-area-inset-bottom)); padding: 14px 16px; max-height: 52%; }
+ .stats-panel .panel-head { padding-bottom: 8px; margin-bottom: 8px; }
+ .stats-panel .big-value { font-size: 26px; }
+ .stats-panel.expanded { max-height: 52%; }
+ .country-card { left: 14px; right: 14px; top: 102px; width: auto; max-height: 46%; padding: 20px; }
+ .time-axis { bottom: calc(126px + env(safe-area-inset-bottom)); width: calc(100% - 28px); padding: 10px 14px; }
+ .whisper { bottom: 185px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+h1, h2 { text-wrap: balance; }
+.country-card h2 { font-variant-numeric: tabular-nums; }
+
+@media(max-width:768px) { .news-ticker { right:188px; } .time-axis { bottom:calc(168px + env(safe-area-inset-bottom)); } .app-root:has(.stats-panel.expanded) .time-axis { bottom:calc(52% + 28px); } }
+
+:focus-visible { outline:2px solid var(--teal); outline-offset:4px; transition:none; }
