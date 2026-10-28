@@ -63,23 +63,31 @@ test('时间轴: 拨入回放世界人口随历史变化, 回到现在恢复', a
 })
 
 test('手机: 时间轴与折叠面板分开，快讯不遮挡控件，键盘焦点可见', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto(`${PATH}?pause`)
   await expect(page.locator('.app-root')).toHaveClass(/booted/, { timeout: 60_000 })
   const panel = page.locator('.stats-panel')
-  const axis = page.locator('.time-axis')
   for (const [width, height] of [[320, 568], [390, 844], [768, 1024]]) {
     await page.setViewportSize({ width, height })
     for (const expanded of [false, true]) {
-      if (expanded) await page.locator('.panel-toggle').click()
-      const panelBox = await panel.boundingBox()
-      const axisBox = await axis.boundingBox()
-      expect(axisBox.y + axisBox.height).toBeLessThan(panelBox.y)
+      if (expanded) {
+        await page.locator('.panel-toggle').click()
+        await expect(panel).toHaveClass(/expanded/)
+      } else {
+        await expect(panel).not.toHaveClass(/expanded/)
+      }
+      // Batch layout reads so software-rendered WebGL frames do not stall each measurement.
+      const boxes = await page.evaluate(() => Object.fromEntries(
+        ['.stats-panel', '.time-axis', '.news-ticker', '.top-right'].map(selector => {
+          const { top, bottom, left, right } = document.querySelector(selector).getBoundingClientRect()
+          return [selector, { top, bottom, left, right }]
+        }),
+      ))
+      expect(boxes['.time-axis'].bottom).toBeLessThan(boxes['.stats-panel'].top)
+      expect(boxes['.news-ticker'].right).toBeLessThan(boxes['.top-right'].left)
       if (expanded) await page.locator('.panel-toggle').click()
     }
-    const ticker = await page.locator('.news-ticker').boundingBox()
-    const controls = await page.locator('.top-right').boundingBox()
-    expect(ticker.x + ticker.width).toBeLessThan(controls.x)
   }
   await page.locator('.ta-play').focus()
   await page.keyboard.press('Tab')
