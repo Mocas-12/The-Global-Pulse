@@ -62,6 +62,34 @@ test('时间轴: 拨入回放世界人口随历史变化, 回到现在恢复', a
   expect(vLive).toBeGreaterThan(7_500_000_000)
 })
 
+test('手机: 时间轴与折叠面板分开，快讯不遮挡控件，键盘焦点可见', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`${PATH}?pause`)
+  await expect(page.locator('.app-root')).toHaveClass(/booted/, { timeout: 60_000 })
+  const panel = page.locator('.stats-panel')
+  const axis = page.locator('.time-axis')
+  for (const [width, height] of [[320, 568], [390, 844], [768, 1024]]) {
+    await page.setViewportSize({ width, height })
+    for (const expanded of [false, true]) {
+      if (expanded) await page.locator('.panel-toggle').click()
+      const panelBox = await panel.boundingBox()
+      const axisBox = await axis.boundingBox()
+      expect(axisBox.y + axisBox.height).toBeLessThan(panelBox.y)
+      if (expanded) await page.locator('.panel-toggle').click()
+    }
+    const ticker = await page.locator('.news-ticker').boundingBox()
+    const controls = await page.locator('.top-right').boundingBox()
+    expect(ticker.x + ticker.width).toBeLessThan(controls.x)
+  }
+  await page.locator('.ta-play').focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.time-axis input')).toBeFocused()
+  expect(await page.locator('.time-axis input').evaluate(el => {
+    const style = getComputedStyle(el)
+    return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+  })).toBe(true)
+})
+
 test('分享链接: 选中国家写入 URL, 刷新后恢复', async ({ page }) => {
   await page.goto(PATH)
   await expect(page.locator('.app-root')).toHaveClass(/ready/, { timeout: 60_000 })

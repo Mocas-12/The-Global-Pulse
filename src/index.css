@@ -1028,7 +1028,7 @@ body {
   .news-ticker {
     top: 10px;
     left: 12px;
-    right: 122px;
+    right: 172px;
     width: auto;
     transform: none;
   }
@@ -1036,15 +1036,28 @@ body {
   .hint { display: none; }
   .cause-list { gap: 5px; }
   .time-axis {
-    bottom: 84px;
+    bottom: calc(124px + env(safe-area-inset-bottom));
     width: min(560px, calc(100vw - 20px));
     gap: 10px;
     padding: 9px 14px;
   }
   .time-axis input[type="range"] { width: auto; flex: 1; min-width: 0; }
+  .app-root:has(.stats-panel.expanded) .time-axis {
+    bottom: calc(56vh + 24px + env(safe-area-inset-bottom));
+  }
   .whisper { bottom: 150px; font-size: 12px; line-height: 1.7; }
   .iss-chip { display: none; }
   .disaster-legend { display: none; }
+}
+
+button:focus-visible, a:focus-visible,
+.time-axis input[type="range"]:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 4px;
+}
+.time-axis:has(:focus-visible) {
+  outline: 2px solid var(--teal);
+  outline-offset: 4px;
 }
 
 /* ————————————————— 动效敏感用户: 关闭装饰性动画 ————————————————— */
